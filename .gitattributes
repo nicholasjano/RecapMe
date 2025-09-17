@@ -1,0 +1,43 @@
+# Ensure all text files use LF line endings
+* text=auto eol=lf
+
+# Kotlin & Java source
+*.kt text diff=java
+*.java text diff=java
+
+# Gradle files
+*.gradle text
+*.gradle.kts text
+
+# XML files (layouts, manifests, resources)
+*.xml text
+
+# JSON, YAML, Markdown
+*.json text
+*.yml text
+*.yaml text
+*.md text
+
+# Proguard / R8 rules
+*.pro text
+
+# GitHub workflows / actions
+*.yml text
+*.yaml text
+
+# Shell / scripts
+*.sh text eol=lf
+
+# Ignore binary files (don't normalize)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.jar binary
+*.keystore binary
+*.jks binary
+
+# macOS Finder files
+.DS_Store binary
