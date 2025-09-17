@@ -11,10 +11,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,10 +26,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.recapme.data.models.Recap
 import com.example.recapme.data.models.Category
-import com.example.recapme.data.models.RecapStatistics
 import com.example.recapme.ui.components.FilePicker
 import com.example.recapme.ui.components.AddCategoryDialog
 import com.example.recapme.ui.theme.*
@@ -196,7 +195,7 @@ fun HomeScreen(
                             label = { Text(category.name) },
                             selected = selectedCategoryId == category.id,
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(android.graphics.Color.parseColor(category.color)),
+                                selectedContainerColor = Color(category.color.toColorInt()),
                                 selectedLabelColor = White,
                                 containerColor = Color.Transparent,
                                 labelColor = DarkGray
@@ -208,7 +207,7 @@ fun HomeScreen(
                                     enabled = true,
                                     selected = false,
                                     borderColor = MediumGray,
-                                    selectedBorderColor = Color(android.graphics.Color.parseColor(category.color)),
+                                    selectedBorderColor = Color(category.color.toColorInt()),
                                     borderWidth = 1.dp,
                                     selectedBorderWidth = 1.dp
                                 )
@@ -257,7 +256,7 @@ fun HomeScreen(
                 ) {
                     StatisticCard(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Default.CalendarToday,
+                        icon = Icons.Default.DateRange,
                         iconBackgroundColor = DarkGreen,
                         label = "This Week",
                         value = statistics.thisWeek.toString()
@@ -316,7 +315,7 @@ fun HomeScreen(
                                         modifier = Modifier.size(24.dp)
                                     ) {
                                         Icon(
-                                            imageVector = if (recap.isStarred) Icons.Default.Star else Icons.Default.StarBorder,
+                                            imageVector = if (recap.isStarred) Icons.Default.Star else Icons.Outlined.StarBorder,
                                             contentDescription = if (recap.isStarred) "Remove from favorites" else "Add to favorites",
                                             tint = if (recap.isStarred) WarningOrange else MediumGray
                                         )
@@ -368,7 +367,7 @@ fun HomeScreen(
                                                 containerColor = run {
                                                     val category = categories.find { it.id == recap.category }
                                                     if (category != null) {
-                                                        Color(android.graphics.Color.parseColor(category.color))
+                                                        Color(category.color.toColorInt())
                                                     } else {
                                                         MediumGray
                                                     }

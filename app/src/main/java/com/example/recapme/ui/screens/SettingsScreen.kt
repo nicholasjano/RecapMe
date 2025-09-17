@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recapme.data.models.*
 import com.example.recapme.ui.theme.*
@@ -63,9 +64,9 @@ fun SettingsScreen(
                     title = "Recap Time Window",
                     subtitle = "How far back to analyze messages",
                     selectedValue = settings.recapTimeWindow.displayName,
-                    options = TimeWindow.values().map { it.displayName },
+                    options = TimeWindow.entries.map { it.displayName },
                     onValueSelected = { displayName ->
-                        val timeWindow = TimeWindow.values().find { it.displayName == displayName }
+                        val timeWindow = TimeWindow.entries.find { it.displayName == displayName }
                         timeWindow?.let { viewModel.updateTimeWindow(it) }
                     }
                 )
@@ -74,9 +75,9 @@ fun SettingsScreen(
                     title = "Summary Style",
                     subtitle = "How detailed should the summaries be",
                     selectedValue = settings.summaryStyle.displayName,
-                    options = SummaryStyle.values().map { it.displayName },
+                    options = SummaryStyle.entries.map { it.displayName },
                     onValueSelected = { displayName ->
-                        val style = SummaryStyle.values().find { it.displayName == displayName }
+                        val style = SummaryStyle.entries.find { it.displayName == displayName }
                         style?.let { viewModel.updateSummaryStyle(it) }
                     }
                 )
@@ -95,9 +96,9 @@ fun SettingsScreen(
                     title = "Show Participants by",
                     subtitle = "How to display participant information",
                     selectedValue = settings.showParticipantsBy.displayName,
-                    options = ParticipantDisplay.values().map { it.displayName },
+                    options = ParticipantDisplay.entries.map { it.displayName },
                     onValueSelected = { displayName ->
-                        val display = ParticipantDisplay.values().find { it.displayName == displayName }
+                        val display = ParticipantDisplay.entries.find { it.displayName == displayName }
                         display?.let { viewModel.updateParticipantDisplay(it) }
                     }
                 )
@@ -147,9 +148,9 @@ fun SettingsScreen(
                     title = "Theme",
                     subtitle = "App appearance",
                     selectedValue = settings.theme.displayName,
-                    options = AppTheme.values().map { it.displayName },
+                    options = AppTheme.entries.map { it.displayName },
                     onValueSelected = { displayName ->
-                        val theme = AppTheme.values().find { it.displayName == displayName }
+                        val theme = AppTheme.entries.find { it.displayName == displayName }
                         theme?.let { viewModel.updateTheme(it) }
                     }
                 )
@@ -405,7 +406,7 @@ fun CategoryManagementItem(
                 modifier = Modifier
                     .size(24.dp)
                     .background(
-                        color = androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(category.color)),
+                        color = androidx.compose.ui.graphics.Color(category.color.toColorInt()),
                         shape = CircleShape
                     )
             )

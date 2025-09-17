@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -82,13 +83,13 @@ fun AddCategoryDialog(
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(colorOptions) { (colorHex, colorName) ->
+                        items(colorOptions) { (colorHex, _) ->
                             val isSelected = selectedColor == colorHex
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(Color(android.graphics.Color.parseColor(colorHex)))
+                                    .background(Color(colorHex.toColorInt()))
                                     .border(
                                         width = if (isSelected) 3.dp else 1.dp,
                                         color = if (isSelected) DarkGreen else MediumGray,

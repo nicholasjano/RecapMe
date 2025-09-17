@@ -127,9 +127,6 @@ class HomeViewModel : ViewModel() {
         _statistics.value = calculateStatistics(updatedRecaps)
     }
 
-    fun importFile() {
-        _showFilePicker.value = true
-    }
 
     fun onFilePickerDismissed() {
         _showFilePicker.value = false

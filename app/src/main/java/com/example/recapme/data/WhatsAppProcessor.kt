@@ -2,26 +2,21 @@ package com.example.recapme.data
 
 import android.content.Context
 import android.net.Uri
-import androidx.documentfile.provider.DocumentFile
 import com.example.recapme.data.models.ChatMessage
-import com.example.recapme.data.models.Recap
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.zip.ZipInputStream
-import kotlin.random.Random
 
 class WhatsAppProcessor {
-    companion object {
-        private val DATE_FORMATS = listOf(
-            SimpleDateFormat("[dd/MM/yy, HH:mm:ss] ", Locale.getDefault()),
-            SimpleDateFormat("[M/d/yy, h:mm:ss a] ", Locale.getDefault()),
-            SimpleDateFormat("[dd.MM.yy, HH:mm:ss] ", Locale.getDefault())
-        )
-    }
+    private fun getDateFormats() = listOf(
+        SimpleDateFormat("[dd/MM/yy, HH:mm:ss] ", Locale.getDefault()),
+        SimpleDateFormat("[M/d/yy, h:mm:ss a] ", Locale.getDefault()),
+        SimpleDateFormat("[dd.MM.yy, HH:mm:ss] ", Locale.getDefault())
+    )
 
-    suspend fun processWhatsAppFile(context: Context, uri: Uri): Result<List<ChatMessage>> {
+    fun processWhatsAppFile(context: Context, uri: Uri): Result<List<ChatMessage>> {
         return try {
             val messages = extractMessagesFromZip(context, uri)
             val filteredMessages = filterLastSevenDays(messages)
@@ -69,7 +64,7 @@ class WhatsAppProcessor {
     }
 
     private fun parseMessageLine(line: String): ChatMessage? {
-        for (dateFormat in DATE_FORMATS) {
+        for (dateFormat in getDateFormats()) {
             try {
                 val matcher = dateFormat.toPattern().toRegex().find(line)
                 if (matcher != null) {
@@ -91,7 +86,7 @@ class WhatsAppProcessor {
                         }
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 continue
             }
         }
