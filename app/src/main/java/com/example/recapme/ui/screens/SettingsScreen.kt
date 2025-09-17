@@ -1,0 +1,450 @@
+package com.example.recapme.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.recapme.data.models.*
+import com.example.recapme.ui.theme.*
+import com.example.recapme.ui.viewmodels.SettingsViewModel
+import com.example.recapme.ui.viewmodels.HomeViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    viewModel: SettingsViewModel = viewModel(),
+    homeViewModel: HomeViewModel = viewModel()
+) {
+    val settings by viewModel.settings.collectAsState()
+    val categories by homeViewModel.categories.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LightGray)
+    ) {
+        TopAppBar(
+            title = {
+                Text(
+                    text = "Settings",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = White
+                )
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = DarkGreen
+            )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            SettingsSection(title = "Summarization Settings") {
+                DropdownSetting(
+                    title = "Recap Time Window",
+                    subtitle = "How far back to analyze messages",
+                    selectedValue = settings.recapTimeWindow.displayName,
+                    options = TimeWindow.values().map { it.displayName },
+                    onValueSelected = { displayName ->
+                        val timeWindow = TimeWindow.values().find { it.displayName == displayName }
+                        timeWindow?.let { viewModel.updateTimeWindow(it) }
+                    }
+                )
+
+                DropdownSetting(
+                    title = "Summary Style",
+                    subtitle = "How detailed should the summaries be",
+                    selectedValue = settings.summaryStyle.displayName,
+                    options = SummaryStyle.values().map { it.displayName },
+                    onValueSelected = { displayName ->
+                        val style = SummaryStyle.values().find { it.displayName == displayName }
+                        style?.let { viewModel.updateSummaryStyle(it) }
+                    }
+                )
+            }
+
+            SettingsSection(title = "Privacy & Data") {
+                ClickableSetting(
+                    title = "Export Summaries",
+                    subtitle = "Export your recaps as .txt or .pdf files",
+                    onClick = { viewModel.exportSummaries() }
+                )
+            }
+
+            SettingsSection(title = "App Behavior") {
+                DropdownSetting(
+                    title = "Show Participants by",
+                    subtitle = "How to display participant information",
+                    selectedValue = settings.showParticipantsBy.displayName,
+                    options = ParticipantDisplay.values().map { it.displayName },
+                    onValueSelected = { displayName ->
+                        val display = ParticipantDisplay.values().find { it.displayName == displayName }
+                        display?.let { viewModel.updateParticipantDisplay(it) }
+                    }
+                )
+            }
+
+            SettingsSection(title = "Categories") {
+                Column {
+                    Text(
+                        text = "Manage your custom categories",
+                        fontSize = 14.sp,
+                        color = MediumGray,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    categories.forEach { category ->
+                        CategoryManagementItem(
+                            category = category,
+                            onDelete = if (!category.isDefault) {
+                                { homeViewModel.deleteCategory(category.id) }
+                            } else null
+                        )
+                    }
+
+                    ClickableSetting(
+                        title = "Add New Category",
+                        subtitle = "Create a custom category for your recaps",
+                        onClick = { homeViewModel.showAddCategoryDialog() }
+                    )
+                }
+            }
+
+            SettingsSection(title = "AI Settings") {
+                DropdownSetting(
+                    title = "Language Preference",
+                    subtitle = "Preferred language for summaries",
+                    selectedValue = if (settings.languagePreference == "auto") "Auto-detect" else settings.languagePreference,
+                    options = listOf("Auto-detect", "English", "Spanish", "French", "German", "Portuguese"),
+                    onValueSelected = { language ->
+                        val langCode = if (language == "Auto-detect") "auto" else language.lowercase()
+                        viewModel.updateLanguagePreference(langCode)
+                    }
+                )
+            }
+
+            SettingsSection(title = "General") {
+                DropdownSetting(
+                    title = "Theme",
+                    subtitle = "App appearance",
+                    selectedValue = settings.theme.displayName,
+                    options = AppTheme.values().map { it.displayName },
+                    onValueSelected = { displayName ->
+                        val theme = AppTheme.values().find { it.displayName == displayName }
+                        theme?.let { viewModel.updateTheme(it) }
+                    }
+                )
+
+                ExpandableSetting(
+                    title = "About",
+                    subtitle = "App version and information"
+                ) {
+                    AboutContent()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = DarkGreen,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+fun DropdownSetting(
+    title: String,
+    subtitle: String,
+    selectedValue: String,
+    options: List<String>,
+    onValueSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = DarkGray
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 14.sp,
+                    color = MediumGray
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = selectedValue,
+                    fontSize = 14.sp,
+                    color = DarkGreen,
+                    fontWeight = FontWeight.Medium
+                )
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    tint = DarkGreen
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onValueSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+
+        if (expanded.not()) {
+            HorizontalDivider(
+                color = LightGray,
+                thickness = 1.dp,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun ClickableSetting(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = DarkGray
+            )
+            Text(
+                text = subtitle,
+                fontSize = 14.sp,
+                color = MediumGray
+            )
+        }
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = DarkGreen
+        )
+    }
+    HorizontalDivider(
+        color = LightGray,
+        thickness = 1.dp,
+        modifier = Modifier.padding(vertical = 8.dp)
+    )
+}
+
+@Composable
+fun ExpandableSetting(
+    title: String,
+    subtitle: String,
+    content: @Composable () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = DarkGray
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 14.sp,
+                    color = MediumGray
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = DarkGreen
+            )
+        }
+
+        if (expanded) {
+            content()
+        }
+
+        HorizontalDivider(
+            color = LightGray,
+            thickness = 1.dp,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+    }
+}
+
+@Composable
+fun AboutContent() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "RecapMe",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = DarkGreen
+        )
+        Text(
+            text = "Version 1.0.0",
+            fontSize = 14.sp,
+            color = MediumGray
+        )
+        Text(
+            text = "An offline-first app for generating AI summaries of WhatsApp conversations.",
+            fontSize = 14.sp,
+            color = DarkGray
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Developed with privacy in mind - all processing happens locally on your device.",
+            fontSize = 12.sp,
+            color = MediumGray
+        )
+    }
+}
+
+@Composable
+fun CategoryManagementItem(
+    category: Category,
+    onDelete: (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .background(
+                        color = androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(category.color)),
+                        shape = CircleShape
+                    )
+            )
+
+            Column {
+                Text(
+                    text = category.name,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = DarkGray
+                )
+                if (category.isDefault) {
+                    Text(
+                        text = "Default category",
+                        fontSize = 12.sp,
+                        color = MediumGray
+                    )
+                }
+            }
+        }
+
+        if (onDelete != null) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete category",
+                    tint = ErrorRed,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+
+    HorizontalDivider(
+        color = LightGray,
+        thickness = 1.dp,
+        modifier = Modifier.padding(vertical = 4.dp)
+    )
+}
