@@ -8,13 +8,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.example.recapme.data.WhatsAppProcessor
+import com.example.recapme.data.SettingsDataStore
 import com.example.recapme.data.models.Recap
 import com.example.recapme.data.models.Category
 import com.example.recapme.data.models.RecapStatistics
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(private val settingsDataStore: SettingsDataStore? = null) : ViewModel() {
     private val whatsAppProcessor = WhatsAppProcessor()
 
     private val _searchQuery = MutableStateFlow("")
@@ -23,7 +25,7 @@ class HomeViewModel : ViewModel() {
     private val _selectedCategoryId = MutableStateFlow(Category.ALL_CATEGORY_ID)
     val selectedCategoryId: StateFlow<String> = _selectedCategoryId.asStateFlow()
 
-    private val _allRecaps = MutableStateFlow(getSampleRecaps())
+    private val _allRecaps = MutableStateFlow<List<Recap>>(emptyList())
     private val allRecaps: StateFlow<List<Recap>> = _allRecaps.asStateFlow()
 
     private val _categories = MutableStateFlow(Category.getDefaultCategories())
@@ -65,7 +67,7 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    private val _statistics = MutableStateFlow(calculateStatistics(getSampleRecaps()))
+    private val _statistics = MutableStateFlow(calculateStatistics(emptyList()))
     val statistics: StateFlow<RecapStatistics> = _statistics.asStateFlow()
 
     fun updateSearchQuery(query: String) {
@@ -144,31 +146,55 @@ class HomeViewModel : ViewModel() {
             _isLoading.value = true
             _errorMessage.value = null
 
-            whatsAppProcessor.processWhatsAppFile(context, uri)
-                .onSuccess { messages ->
-                    // Create placeholder recap - LLM will generate actual content later
-                    val participants = messages.map { it.sender }.distinct()
-                    val placeholderRecap = Recap(
-                        id = java.util.UUID.randomUUID().toString(),
-                        title = "WhatsApp Chat (${participants.size} participants)", // Placeholder title
-                        participants = participants,
-                        content = "Processing ${messages.size} messages...", // Placeholder content
-                        category = null, // No category by default, user can set one later
-                        timestamp = System.currentTimeMillis(),
-                        isStarred = false
-                    )
+            try {
+                // Get current settings, or use defaults if datastore is not available
+                val settings = settingsDataStore?.settingsFlow?.first()
+                    ?: com.example.recapme.data.models.AppSettings()
 
-                    val currentRecaps = _allRecaps.value.toMutableList()
-                    currentRecaps.add(0, placeholderRecap)
-                    _allRecaps.value = currentRecaps
-                    _statistics.value = calculateStatistics(currentRecaps)
-                }
-                .onFailure { error ->
-                    _errorMessage.value = "Failed to process file: ${error.message}"
-                }
+                whatsAppProcessor.processWhatsAppFile(context, uri, settings)
+                    .onSuccess { chatContent ->
+                        // Extract participants from the chat content
+                        val participants = extractParticipantsFromContent(chatContent)
+
+                        val recap = Recap(
+                            id = java.util.UUID.randomUUID().toString(),
+                            title = "WhatsApp Chat (${participants.size} participants)",
+                            participants = participants,
+                            content = chatContent,
+                            category = null,
+                            timestamp = System.currentTimeMillis(),
+                            isStarred = false
+                        )
+
+                        val currentRecaps = _allRecaps.value.toMutableList()
+                        currentRecaps.add(0, recap)
+                        _allRecaps.value = currentRecaps
+                        _statistics.value = calculateStatistics(currentRecaps)
+                    }
+                    .onFailure { error ->
+                        _errorMessage.value = "Failed to process file: ${error.message}"
+                    }
+            } catch (e: Exception) {
+                _errorMessage.value = "Error accessing settings: ${e.message}"
+            }
 
             _isLoading.value = false
         }
+    }
+
+    private fun extractParticipantsFromContent(content: String): List<String> {
+        // Extract participant names from the single line content
+        val participants = mutableSetOf<String>()
+        val pattern = Regex("([^:]+):")
+
+        pattern.findAll(content).forEach { match ->
+            val participant = match.groupValues[1].trim()
+            if (participant.isNotBlank()) {
+                participants.add(participant)
+            }
+        }
+
+        return participants.toList()
     }
 
     fun clearError() {
@@ -197,6 +223,10 @@ class HomeViewModel : ViewModel() {
         _showCategoryPickerForRecap.value = null
     }
 
+    fun showFilePicker() {
+        _showFilePicker.value = true
+    }
+
     private fun calculateStatistics(recaps: List<Recap>): RecapStatistics {
         val now = System.currentTimeMillis()
         val weekAgo = now - (7 * 24 * 60 * 60 * 1000L)
@@ -208,63 +238,4 @@ class HomeViewModel : ViewModel() {
         )
     }
 
-    private fun getSampleRecaps(): List<Recap> {
-        val now = System.currentTimeMillis()
-        return listOf(
-            Recap(
-                id = "1",
-                title = "Team Standup Discussion",
-                participants = listOf("Alice", "Bob", "Charlie"),
-                content = "Discussed sprint progress, blockers, and upcoming deadlines. Alice mentioned the API integration is 80% complete. Bob needs help with the authentication module.",
-                category = "work",
-                timestamp = now - (2 * 60 * 60 * 1000L), // 2 hours ago
-                isStarred = true
-            ),
-            Recap(
-                id = "2",
-                title = "Weekend Plans with Friends",
-                participants = listOf("Sarah", "Mike", "Jenny", "Dave"),
-                content = "Planning a hiking trip for this weekend. Discussed meeting point, what to bring, and weather conditions. Everyone agreed on the 8 AM start time.",
-                category = null, // No category
-                timestamp = now - (5 * 60 * 60 * 1000L), // 5 hours ago
-                isStarred = false
-            ),
-            Recap(
-                id = "3",
-                title = "Client Project Requirements",
-                participants = listOf("John", "Maria"),
-                content = "Client wants to add new features to the mobile app. Discussed timeline, budget constraints, and technical feasibility. Need to prepare a detailed proposal by Friday.",
-                category = "work",
-                timestamp = now - (1 * 24 * 60 * 60 * 1000L), // 1 day ago
-                isStarred = true
-            ),
-            Recap(
-                id = "4",
-                title = "Family Dinner Organization",
-                participants = listOf("Mom", "Dad", "Sister"),
-                content = "Planning family dinner for next Sunday. Mom will cook the main course, I'll bring dessert, and sister will handle appetizers. Dad will set up the table.",
-                category = "personal",
-                timestamp = now - (2 * 24 * 60 * 60 * 1000L), // 2 days ago
-                isStarred = false
-            ),
-            Recap(
-                id = "5",
-                title = "Bug Fix Coordination",
-                participants = listOf("Tech Lead", "QA Team", "DevOps"),
-                content = "Critical bug found in production. Coordinating hotfix deployment. QA will test the patch, DevOps will handle the deployment during low-traffic hours.",
-                category = null, // No category
-                timestamp = now - (3 * 24 * 60 * 60 * 1000L), // 3 days ago
-                isStarred = false
-            ),
-            Recap(
-                id = "6",
-                title = "Book Club Discussion",
-                participants = listOf("Emma", "James", "Lily", "Marcus"),
-                content = "Great discussion about this month's book selection. Everyone loved the plot twists and character development. Next month we're reading a sci-fi novel that James recommended.",
-                category = "personal",
-                timestamp = now - (4 * 24 * 60 * 60 * 1000L), // 4 days ago
-                isStarred = true
-            )
-        )
-    }
 }

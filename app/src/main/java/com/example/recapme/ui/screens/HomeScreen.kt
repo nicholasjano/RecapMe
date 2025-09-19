@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.*
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recapme.data.models.Category
+import com.example.recapme.data.SettingsDataStore
 import com.example.recapme.ui.components.FilePicker
 import com.example.recapme.ui.components.AddCategoryDialog
 import com.example.recapme.ui.components.CategoryPickerDialog
@@ -39,7 +39,11 @@ import com.example.recapme.ui.viewmodels.HomeViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = run {
+        val context = LocalContext.current
+        val settingsDataStore = SettingsDataStore(context)
+        viewModel { HomeViewModel(settingsDataStore) }
+    }
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
@@ -125,11 +129,11 @@ fun HomeScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { /* TODO: Add filter functionality */ }
+                        onClick = { viewModel.showFilePicker() }
                     ) {
                         Icon(
-                            Icons.Default.FilterList,
-                            contentDescription = "Filter",
+                            Icons.Default.Add,
+                            contentDescription = "Import WhatsApp chat",
                             tint = White,
                             modifier = Modifier.size(24.dp)
                         )
@@ -295,129 +299,191 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(recaps) { recap ->
+                if (recaps.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .clickable { viewModel.showFilePicker() },
+                        contentAlignment = Alignment.Center
+                    ) {
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
                             colors = CardDefaults.cardColors(containerColor = White),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                         ) {
                             Column(
-                                modifier = Modifier.padding(16.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.Top
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .background(
+                                            color = DarkGreen.copy(alpha = 0.1f),
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = recap.title,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = DarkGray
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = recap.content.take(100) + if (recap.content.length > 100) "..." else "",
-                                            fontSize = 14.sp,
-                                            color = MediumGray
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = { viewModel.toggleStar(recap.id) },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (recap.isStarred) Icons.Default.Star else Icons.Outlined.StarBorder,
-                                            contentDescription = if (recap.isStarred) "Remove from favorites" else "Add to favorites",
-                                            tint = if (recap.isStarred) WarningOrange else MediumGray
-                                        )
-                                    }
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = "Import recap",
+                                        tint = DarkGreen,
+                                        modifier = Modifier.size(40.dp)
+                                    )
                                 }
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Text(
+                                    text = "Import your first recap here",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DarkGray,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                    text = "Upload a WhatsApp chat export (ZIP file) to get started",
+                                    fontSize = 14.sp,
+                                    color = MediumGray,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(recaps) { recap ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = White),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp)
                                 ) {
                                     Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = recap.title,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = DarkGray
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = recap.content.take(100) + if (recap.content.length > 100) "..." else "",
+                                                fontSize = 14.sp,
+                                                color = MediumGray
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { viewModel.toggleStar(recap.id) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (recap.isStarred) Icons.Default.Star else Icons.Outlined.StarBorder,
+                                                contentDescription = if (recap.isStarred) "Remove from favorites" else "Add to favorites",
+                                                tint = if (recap.isStarred) WarningOrange else MediumGray
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        recap.participants.take(3).forEachIndexed { index, participant ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(24.dp)
-                                                    .offset(x = (-4 * index).dp)
-                                                    .clip(CircleShape)
-                                                    .background(DarkGreen),
-                                                contentAlignment = Alignment.Center
-                                            ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            recap.participants.take(3).forEachIndexed { index, participant ->
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(24.dp)
+                                                        .offset(x = (-4 * index).dp)
+                                                        .clip(CircleShape)
+                                                        .background(DarkGreen),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = participant.firstOrNull()?.uppercase() ?: "?",
+                                                        color = White,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                            if (recap.participants.size > 3) {
+                                                Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
-                                                    text = participant.firstOrNull()?.uppercase() ?: "?",
-                                                    color = White,
+                                                    text = "+${recap.participants.size - 3}",
                                                     fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold
+                                                    color = MediumGray
                                                 )
                                             }
                                         }
-                                        if (recap.participants.size > 3) {
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Card(
+                                                modifier = Modifier.clickable {
+                                                    viewModel.showCategoryPickerForRecap(recap.id)
+                                                },
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = run {
+                                                        if (recap.category == null) {
+                                                            MediumGray
+                                                        } else {
+                                                            val category = categories.find { it.id == recap.category }
+                                                            if (category != null) {
+                                                                Color(category.color.toColorInt())
+                                                            } else {
+                                                                MediumGray
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                            ) {
+                                                Text(
+                                                    text = run {
+                                                        if (recap.category == null) {
+                                                            "No Category"
+                                                        } else {
+                                                            val category = categories.find { it.id == recap.category }
+                                                            category?.name ?: recap.category.replaceFirstChar { it.uppercase() }
+                                                        }
+                                                    },
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    fontSize = 10.sp,
+                                                    color = White,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            }
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
-                                                text = "+${recap.participants.size - 3}",
+                                                text = formatTimestamp(recap.timestamp),
                                                 fontSize = 12.sp,
                                                 color = MediumGray
                                             )
                                         }
-                                    }
-
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Card(
-                                            modifier = Modifier.clickable {
-                                                viewModel.showCategoryPickerForRecap(recap.id)
-                                            },
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = run {
-                                                    if (recap.category == null) {
-                                                        MediumGray
-                                                    } else {
-                                                        val category = categories.find { it.id == recap.category }
-                                                        if (category != null) {
-                                                            Color(category.color.toColorInt())
-                                                        } else {
-                                                            MediumGray
-                                                        }
-                                                    }
-                                                }
-                                            )
-                                        ) {
-                                            Text(
-                                                text = run {
-                                                    if (recap.category == null) {
-                                                        "No Category"
-                                                    } else {
-                                                        val category = categories.find { it.id == recap.category }
-                                                        category?.name ?: recap.category.replaceFirstChar { it.uppercase() }
-                                                    }
-                                                },
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                fontSize = 10.sp,
-                                                color = White,
-                                                fontWeight = FontWeight.Medium
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = formatTimestamp(recap.timestamp),
-                                            fontSize = 12.sp,
-                                            color = MediumGray
-                                        )
                                     }
                                 }
                             }
