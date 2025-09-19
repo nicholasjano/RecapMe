@@ -9,11 +9,17 @@ data class AppSettings(
 )
 
 enum class TimeWindow(val displayName: String) {
+    PAST_DAY("Past day"),
+    PAST_3_DAYS("Past 3 days"),
     PAST_WEEK("Past week")
 }
 
 enum class SummaryStyle(val displayName: String) {
-    CONCISE("Concise")
+    CONCISE("Concise"),
+    DETAILED("Detailed"),
+    BULLET("Bullet"),
+    CASUAL("Casual"),
+    FORMAL("Formal")
 }
 
 enum class ParticipantDisplay(val displayName: String) {
