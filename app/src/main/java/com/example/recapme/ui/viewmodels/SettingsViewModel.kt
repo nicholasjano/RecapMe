@@ -1,33 +1,51 @@
 package com.example.recapme.ui.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.launch
 import com.example.recapme.data.models.*
+import com.example.recapme.data.SettingsDataStore
 
-class SettingsViewModel : ViewModel() {
-    private val _settings = MutableStateFlow(AppSettings())
-    val settings: StateFlow<AppSettings> = _settings.asStateFlow()
+class SettingsViewModel(context: Context) : ViewModel() {
+    private val settingsDataStore = SettingsDataStore(context)
+    val settings: StateFlow<AppSettings> = settingsDataStore.settingsFlow.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = AppSettings()
+    )
 
     fun updateTimeWindow(timeWindow: TimeWindow) {
-        _settings.value = _settings.value.copy(recapTimeWindow = timeWindow)
+        viewModelScope.launch {
+            settingsDataStore.updateTimeWindow(timeWindow)
+        }
     }
 
     fun updateSummaryStyle(style: SummaryStyle) {
-        _settings.value = _settings.value.copy(summaryStyle = style)
+        viewModelScope.launch {
+            settingsDataStore.updateSummaryStyle(style)
+        }
     }
 
     fun updateParticipantDisplay(display: ParticipantDisplay) {
-        _settings.value = _settings.value.copy(showParticipantsBy = display)
+        viewModelScope.launch {
+            settingsDataStore.updateParticipantDisplay(display)
+        }
     }
 
     fun updateLanguagePreference(language: String) {
-        _settings.value = _settings.value.copy(languagePreference = language)
+        viewModelScope.launch {
+            settingsDataStore.updateLanguagePreference(language)
+        }
     }
 
     fun updateTheme(theme: AppTheme) {
-        _settings.value = _settings.value.copy(theme = theme)
+        viewModelScope.launch {
+            settingsDataStore.updateTheme(theme)
+        }
     }
 
     fun exportSummaries() {

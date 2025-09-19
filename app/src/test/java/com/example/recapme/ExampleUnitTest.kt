@@ -21,13 +21,19 @@ class SettingsTest {
     }
 
     @Test
-    fun timeWindow_displayName_isCorrect() {
+    fun timeWindow_displayNames_areCorrect() {
+        assertEquals("Past day", TimeWindow.PAST_DAY.displayName)
+        assertEquals("Past 3 days", TimeWindow.PAST_3_DAYS.displayName)
         assertEquals("Past week", TimeWindow.PAST_WEEK.displayName)
     }
 
     @Test
-    fun summaryStyle_displayName_isCorrect() {
+    fun summaryStyle_displayNames_areCorrect() {
         assertEquals("Concise", SummaryStyle.CONCISE.displayName)
+        assertEquals("Detailed", SummaryStyle.DETAILED.displayName)
+        assertEquals("Bullet", SummaryStyle.BULLET.displayName)
+        assertEquals("Casual", SummaryStyle.CASUAL.displayName)
+        assertEquals("Formal", SummaryStyle.FORMAL.displayName)
     }
 
     @Test

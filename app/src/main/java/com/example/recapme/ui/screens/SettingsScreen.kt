@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,14 +23,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recapme.data.models.*
 import com.example.recapme.ui.theme.*
 import com.example.recapme.ui.viewmodels.SettingsViewModel
+import com.example.recapme.ui.viewmodels.SettingsViewModelFactory
 import com.example.recapme.ui.viewmodels.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel = viewModel(),
     homeViewModel: HomeViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val viewModel: SettingsViewModel = viewModel(
+        factory = SettingsViewModelFactory(context)
+    )
     val settings by viewModel.settings.collectAsState()
     val categories by homeViewModel.categories.collectAsState()
 
