@@ -1,6 +1,7 @@
 package com.example.recapme.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -31,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recapme.data.models.Category
 import com.example.recapme.ui.components.FilePicker
 import com.example.recapme.ui.components.AddCategoryDialog
+import com.example.recapme.ui.components.CategoryPickerDialog
 import com.example.recapme.ui.theme.*
 import com.example.recapme.ui.viewmodels.HomeViewModel
 
@@ -48,6 +50,7 @@ fun HomeScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val showFilePicker by viewModel.showFilePicker.collectAsState()
     val showAddCategoryDialog by viewModel.showAddCategoryDialog.collectAsState()
+    val showCategoryPickerForRecap by viewModel.showCategoryPickerForRecap.collectAsState()
     val context = LocalContext.current
 
     FilePicker(
@@ -67,6 +70,18 @@ fun HomeScreen(
             onDismiss = viewModel::hideAddCategoryDialog,
             onConfirm = { name, color ->
                 viewModel.addCustomCategory(name, color)
+            }
+        )
+    }
+
+    showCategoryPickerForRecap?.let { recapId ->
+        val currentRecap = recaps.find { it.id == recapId }
+        CategoryPickerDialog(
+            currentCategory = currentRecap?.category,
+            categories = categories,
+            onDismiss = viewModel::hideCategoryPicker,
+            onCategorySelected = { categoryId ->
+                viewModel.updateRecapCategory(recapId, categoryId)
             }
         )
     }
@@ -188,6 +203,7 @@ fun HomeScreen(
                             }
                         )
                     }
+
 
                     items(categories) { category ->
                         FilterChip(
@@ -363,21 +379,32 @@ fun HomeScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Card(
+                                            modifier = Modifier.clickable {
+                                                viewModel.showCategoryPickerForRecap(recap.id)
+                                            },
                                             colors = CardDefaults.cardColors(
                                                 containerColor = run {
-                                                    val category = categories.find { it.id == recap.category }
-                                                    if (category != null) {
-                                                        Color(category.color.toColorInt())
-                                                    } else {
+                                                    if (recap.category == null) {
                                                         MediumGray
+                                                    } else {
+                                                        val category = categories.find { it.id == recap.category }
+                                                        if (category != null) {
+                                                            Color(category.color.toColorInt())
+                                                        } else {
+                                                            MediumGray
+                                                        }
                                                     }
                                                 }
                                             )
                                         ) {
                                             Text(
                                                 text = run {
-                                                    val category = categories.find { it.id == recap.category }
-                                                    category?.name ?: recap.category.replaceFirstChar { it.uppercase() }
+                                                    if (recap.category == null) {
+                                                        "No Category"
+                                                    } else {
+                                                        val category = categories.find { it.id == recap.category }
+                                                        category?.name ?: recap.category.replaceFirstChar { it.uppercase() }
+                                                    }
                                                 },
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                                 fontSize = 10.sp,

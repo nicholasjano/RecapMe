@@ -41,6 +41,9 @@ class HomeViewModel : ViewModel() {
     private val _showAddCategoryDialog = MutableStateFlow(false)
     val showAddCategoryDialog: StateFlow<Boolean> = _showAddCategoryDialog.asStateFlow()
 
+    private val _showCategoryPickerForRecap = MutableStateFlow<String?>(null)
+    val showCategoryPickerForRecap: StateFlow<String?> = _showCategoryPickerForRecap.asStateFlow()
+
     val filteredRecaps = combine(
         allRecaps,
         searchQuery,
@@ -52,7 +55,11 @@ class HomeViewModel : ViewModel() {
                 recap.content.contains(query, ignoreCase = true) ||
                 recap.participants.any { it.contains(query, ignoreCase = true) }
 
-            val matchesCategory = categoryId == Category.ALL_CATEGORY_ID || recap.category == categoryId
+            val matchesCategory = if (categoryId == Category.ALL_CATEGORY_ID) {
+                true // Show all recaps including those without categories
+            } else {
+                recap.category == categoryId // Only show recaps with the selected category
+            }
 
             matchesSearch && matchesCategory
         }
@@ -105,7 +112,7 @@ class HomeViewModel : ViewModel() {
 
         val updatedRecaps = _allRecaps.value.map { recap ->
             if (recap.category == categoryId) {
-                recap.copy(category = "personal")
+                recap.copy(category = null)
             } else {
                 recap
             }
@@ -146,7 +153,7 @@ class HomeViewModel : ViewModel() {
                         title = "WhatsApp Chat (${participants.size} participants)", // Placeholder title
                         participants = participants,
                         content = "Processing ${messages.size} messages...", // Placeholder content
-                        category = "personal", // Default category, LLM will determine actual category
+                        category = null, // No category by default, user can set one later
                         timestamp = System.currentTimeMillis(),
                         isStarred = false
                     )
@@ -166,6 +173,28 @@ class HomeViewModel : ViewModel() {
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    fun updateRecapCategory(recapId: String, categoryId: String?) {
+        val currentRecaps = _allRecaps.value
+        val updatedRecaps = currentRecaps.map { recap ->
+            if (recap.id == recapId) {
+                recap.copy(category = categoryId)
+            } else {
+                recap
+            }
+        }
+        _allRecaps.value = updatedRecaps
+        _statistics.value = calculateStatistics(updatedRecaps)
+        _showCategoryPickerForRecap.value = null
+    }
+
+    fun showCategoryPickerForRecap(recapId: String) {
+        _showCategoryPickerForRecap.value = recapId
+    }
+
+    fun hideCategoryPicker() {
+        _showCategoryPickerForRecap.value = null
     }
 
     private fun calculateStatistics(recaps: List<Recap>): RecapStatistics {
@@ -196,7 +225,7 @@ class HomeViewModel : ViewModel() {
                 title = "Weekend Plans with Friends",
                 participants = listOf("Sarah", "Mike", "Jenny", "Dave"),
                 content = "Planning a hiking trip for this weekend. Discussed meeting point, what to bring, and weather conditions. Everyone agreed on the 8 AM start time.",
-                category = "personal",
+                category = null, // No category
                 timestamp = now - (5 * 60 * 60 * 1000L), // 5 hours ago
                 isStarred = false
             ),
@@ -223,7 +252,7 @@ class HomeViewModel : ViewModel() {
                 title = "Bug Fix Coordination",
                 participants = listOf("Tech Lead", "QA Team", "DevOps"),
                 content = "Critical bug found in production. Coordinating hotfix deployment. QA will test the patch, DevOps will handle the deployment during low-traffic hours.",
-                category = "work",
+                category = null, // No category
                 timestamp = now - (3 * 24 * 60 * 60 * 1000L), // 3 days ago
                 isStarred = false
             ),

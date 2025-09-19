@@ -5,7 +5,7 @@ data class Recap(
     val title: String,
     val participants: List<String>,
     val content: String,
-    val category: String,
+    val category: String? = null,
     val timestamp: Long,
     val isStarred: Boolean
 )
@@ -23,6 +23,7 @@ data class Category(
         )
 
         const val ALL_CATEGORY_ID = "all"
+        const val NO_CATEGORY_ID = "no_category"
     }
 }
 
