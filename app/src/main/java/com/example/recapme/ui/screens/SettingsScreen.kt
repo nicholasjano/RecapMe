@@ -64,109 +64,109 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            SettingsSection(title = "Summarization Settings") {
-                DropdownSetting(
-                    title = "Recap Time Window",
-                    subtitle = "How far back to analyze messages",
-                    selectedValue = settings.recapTimeWindow.displayName,
-                    options = TimeWindow.entries.map { it.displayName },
-                    onValueSelected = { displayName ->
-                        val timeWindow = TimeWindow.entries.find { it.displayName == displayName }
-                        timeWindow?.let { viewModel.updateTimeWindow(it) }
-                    }
-                )
-
-                DropdownSetting(
-                    title = "Summary Style",
-                    subtitle = "How detailed should the summaries be",
-                    selectedValue = settings.summaryStyle.displayName,
-                    options = SummaryStyle.entries.map { it.displayName },
-                    onValueSelected = { displayName ->
-                        val style = SummaryStyle.entries.find { it.displayName == displayName }
-                        style?.let { viewModel.updateSummaryStyle(it) }
-                    }
-                )
-            }
-
-            SettingsSection(title = "Privacy & Data") {
-                ClickableSetting(
-                    title = "Export Summaries",
-                    subtitle = "Export your recaps as .txt or .pdf files",
-                    onClick = { viewModel.exportSummaries() }
-                )
-            }
-
-            SettingsSection(title = "App Behavior") {
-                DropdownSetting(
-                    title = "Show Participants by",
-                    subtitle = "How to display participant information",
-                    selectedValue = settings.showParticipantsBy.displayName,
-                    options = ParticipantDisplay.entries.map { it.displayName },
-                    onValueSelected = { displayName ->
-                        val display = ParticipantDisplay.entries.find { it.displayName == displayName }
-                        display?.let { viewModel.updateParticipantDisplay(it) }
-                    }
-                )
-            }
-
-            SettingsSection(title = "Categories") {
-                Column {
-                    Text(
-                        text = "Manage your custom categories",
-                        fontSize = 14.sp,
-                        color = MediumGray,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                SettingsSection(title = "Summarization Settings") {
+                    DropdownSetting(
+                        title = "Recap Time Window",
+                        subtitle = "How far back to analyze messages",
+                        selectedValue = settings.recapTimeWindow.displayName,
+                        options = TimeWindow.entries.map { it.displayName },
+                        onValueSelected = { displayName ->
+                            val timeWindow = TimeWindow.entries.find { it.displayName == displayName }
+                            timeWindow?.let { viewModel.updateTimeWindow(it) }
+                        }
                     )
 
-                    categories.forEach { category ->
-                        CategoryManagementItem(
-                            category = category,
-                            onDelete = if (!category.isDefault) {
-                                { homeViewModel.deleteCategory(category.id) }
-                            } else null
+                    DropdownSetting(
+                        title = "Summary Style",
+                        subtitle = "How detailed should the summaries be",
+                        selectedValue = settings.summaryStyle.displayName,
+                        options = SummaryStyle.entries.map { it.displayName },
+                        onValueSelected = { displayName ->
+                            val style = SummaryStyle.entries.find { it.displayName == displayName }
+                            style?.let { viewModel.updateSummaryStyle(it) }
+                        }
+                    )
+                }
+
+                SettingsSection(title = "Privacy & Data") {
+                    ClickableSetting(
+                        title = "Export Summaries",
+                        subtitle = "Export your recaps as .txt or .pdf files",
+                        onClick = { viewModel.exportSummaries() }
+                    )
+                }
+
+                SettingsSection(title = "App Behavior") {
+                    DropdownSetting(
+                        title = "Show Participants by",
+                        subtitle = "How to display participant information",
+                        selectedValue = settings.showParticipantsBy.displayName,
+                        options = ParticipantDisplay.entries.map { it.displayName },
+                        onValueSelected = { displayName ->
+                            val display = ParticipantDisplay.entries.find { it.displayName == displayName }
+                            display?.let { viewModel.updateParticipantDisplay(it) }
+                        }
+                    )
+                }
+
+                SettingsSection(title = "Categories") {
+                    Column {
+                        Text(
+                            text = "Manage your custom categories",
+                            fontSize = 14.sp,
+                            color = MediumGray,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+
+                        categories.forEach { category ->
+                            CategoryManagementItem(
+                                category = category,
+                                onDelete = if (!category.isDefault) {
+                                    { homeViewModel.deleteCategory(category.id) }
+                                } else null
+                            )
+                        }
+
+                        ClickableSetting(
+                            title = "Add New Category",
+                            subtitle = "Create a custom category for your recaps",
+                            onClick = { homeViewModel.showAddCategoryDialog() }
                         )
                     }
+                }
 
-                    ClickableSetting(
-                        title = "Add New Category",
-                        subtitle = "Create a custom category for your recaps",
-                        onClick = { homeViewModel.showAddCategoryDialog() }
+                SettingsSection(title = "AI Settings") {
+                    DropdownSetting(
+                        title = "Language Preference",
+                        subtitle = "Preferred language for summaries",
+                        selectedValue = if (settings.languagePreference == "auto") "Auto-detect" else settings.languagePreference,
+                        options = listOf("Auto-detect", "English", "Spanish", "French", "German", "Portuguese"),
+                        onValueSelected = { language ->
+                            val langCode = if (language == "Auto-detect") "auto" else language.lowercase()
+                            viewModel.updateLanguagePreference(langCode)
+                        }
                     )
                 }
-            }
 
-            SettingsSection(title = "AI Settings") {
-                DropdownSetting(
-                    title = "Language Preference",
-                    subtitle = "Preferred language for summaries",
-                    selectedValue = if (settings.languagePreference == "auto") "Auto-detect" else settings.languagePreference,
-                    options = listOf("Auto-detect", "English", "Spanish", "French", "German", "Portuguese"),
-                    onValueSelected = { language ->
-                        val langCode = if (language == "Auto-detect") "auto" else language.lowercase()
-                        viewModel.updateLanguagePreference(langCode)
+                SettingsSection(title = "General") {
+                    DropdownSetting(
+                        title = "Theme",
+                        subtitle = "App appearance",
+                        selectedValue = settings.theme.displayName,
+                        options = AppTheme.entries.map { it.displayName },
+                        onValueSelected = { displayName ->
+                            val theme = AppTheme.entries.find { it.displayName == displayName }
+                            theme?.let { viewModel.updateTheme(it) }
+                        }
+                    )
+
+                    ExpandableSetting(
+                        title = "About",
+                        subtitle = "App version and information"
+                    ) {
+                        AboutContent()
                     }
-                )
-            }
-
-            SettingsSection(title = "General") {
-                DropdownSetting(
-                    title = "Theme",
-                    subtitle = "App appearance",
-                    selectedValue = settings.theme.displayName,
-                    options = AppTheme.entries.map { it.displayName },
-                    onValueSelected = { displayName ->
-                        val theme = AppTheme.entries.find { it.displayName == displayName }
-                        theme?.let { viewModel.updateTheme(it) }
-                    }
-                )
-
-                ExpandableSetting(
-                    title = "About",
-                    subtitle = "App version and information"
-                ) {
-                    AboutContent()
                 }
-            }
         }
     }
 }

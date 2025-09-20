@@ -9,15 +9,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.SharingStarted
 import com.example.recapme.data.WhatsAppProcessor
 import com.example.recapme.data.SettingsDataStore
+import com.example.recapme.data.RecapDataStore
+import com.example.recapme.data.RecapService
+import com.example.recapme.data.repository.RecapRepository
 import com.example.recapme.data.models.Recap
 import com.example.recapme.data.models.Category
 import com.example.recapme.data.models.RecapStatistics
 
-class HomeViewModel(private val settingsDataStore: SettingsDataStore? = null) : ViewModel() {
+class HomeViewModel(
+    private val settingsDataStore: SettingsDataStore? = null,
+    private val recapDataStore: RecapDataStore? = null
+) : ViewModel() {
     private val whatsAppProcessor = WhatsAppProcessor()
+    private val recapRepository = RecapRepository()
+    private val recapService = RecapService(whatsAppProcessor, recapRepository)
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -25,8 +35,11 @@ class HomeViewModel(private val settingsDataStore: SettingsDataStore? = null) : 
     private val _selectedCategoryId = MutableStateFlow(Category.ALL_CATEGORY_ID)
     val selectedCategoryId: StateFlow<String> = _selectedCategoryId.asStateFlow()
 
-    private val _allRecaps = MutableStateFlow<List<Recap>>(emptyList())
-    private val allRecaps: StateFlow<List<Recap>> = _allRecaps.asStateFlow()
+    private val allRecaps: StateFlow<List<Recap>> = recapDataStore?.recapsFlow?.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        emptyList()
+    ) ?: MutableStateFlow<List<Recap>>(emptyList()).asStateFlow()
 
     private val _categories = MutableStateFlow(Category.getDefaultCategories())
     val categories: StateFlow<List<Category>> = _categories.asStateFlow()
@@ -45,6 +58,12 @@ class HomeViewModel(private val settingsDataStore: SettingsDataStore? = null) : 
 
     private val _showCategoryPickerForRecap = MutableStateFlow<String?>(null)
     val showCategoryPickerForRecap: StateFlow<String?> = _showCategoryPickerForRecap.asStateFlow()
+
+    private val _showDeleteConfirmation = MutableStateFlow<String?>(null)
+    val showDeleteConfirmation: StateFlow<String?> = _showDeleteConfirmation.asStateFlow()
+
+    private val _showClearAllConfirmation = MutableStateFlow(false)
+    val showClearAllConfirmation: StateFlow<Boolean> = _showClearAllConfirmation.asStateFlow()
 
     val filteredRecaps = combine(
         allRecaps,
@@ -104,36 +123,50 @@ class HomeViewModel(private val settingsDataStore: SettingsDataStore? = null) : 
     }
 
     fun deleteCategory(categoryId: String) {
-        val currentCategories = _categories.value.toMutableList()
-        currentCategories.removeAll { it.id == categoryId && !it.isDefault }
-        _categories.value = currentCategories
+        viewModelScope.launch {
+            val currentCategories = _categories.value.toMutableList()
+            currentCategories.removeAll { it.id == categoryId && !it.isDefault }
+            _categories.value = currentCategories
 
-        if (_selectedCategoryId.value == categoryId) {
-            _selectedCategoryId.value = Category.ALL_CATEGORY_ID
-        }
+            if (_selectedCategoryId.value == categoryId) {
+                _selectedCategoryId.value = Category.ALL_CATEGORY_ID
+            }
 
-        val updatedRecaps = _allRecaps.value.map { recap ->
-            if (recap.category == categoryId) {
-                recap.copy(category = null)
-            } else {
-                recap
+            // Update all recaps that had this category
+            val currentRecaps = allRecaps.value
+            val recapsToUpdate = currentRecaps.filter { it.category == categoryId }
+
+            var hasErrors = false
+            recapsToUpdate.forEach { recap ->
+                val updatedRecap = recap.copy(category = null)
+                recapDataStore?.updateRecap(updatedRecap)
+                    ?.onFailure { error ->
+                        hasErrors = true
+                        _errorMessage.value = "Failed to update some recaps: ${error.message}"
+                    }
+            }
+
+            if (!hasErrors) {
+                _statistics.value = calculateStatistics(allRecaps.value)
             }
         }
-        _allRecaps.value = updatedRecaps
-        _statistics.value = calculateStatistics(updatedRecaps)
     }
 
     fun toggleStar(recapId: String) {
-        val currentRecaps = _allRecaps.value
-        val updatedRecaps = currentRecaps.map { recap ->
-            if (recap.id == recapId) {
-                recap.copy(isStarred = !recap.isStarred)
-            } else {
-                recap
+        viewModelScope.launch {
+            val currentRecaps = allRecaps.value
+            val recapToUpdate = currentRecaps.find { it.id == recapId }
+            if (recapToUpdate != null) {
+                val updatedRecap = recapToUpdate.copy(isStarred = !recapToUpdate.isStarred)
+                recapDataStore?.updateRecap(updatedRecap)
+                    ?.onSuccess {
+                        _statistics.value = calculateStatistics(allRecaps.value)
+                    }
+                    ?.onFailure { error ->
+                        _errorMessage.value = "Failed to update star status: ${error.message}"
+                    }
             }
         }
-        _allRecaps.value = updatedRecaps
-        _statistics.value = calculateStatistics(updatedRecaps)
     }
 
 
@@ -147,72 +180,65 @@ class HomeViewModel(private val settingsDataStore: SettingsDataStore? = null) : 
             _errorMessage.value = null
 
             try {
+                android.util.Log.d("HomeViewModel", "Starting file processing for URI: $uri")
+
                 // Get current settings, or use defaults if datastore is not available
                 val settings = settingsDataStore?.settingsFlow?.first()
                     ?: com.example.recapme.data.models.AppSettings()
 
-                whatsAppProcessor.processWhatsAppFile(context, uri, settings)
-                    .onSuccess { chatContent ->
-                        // Extract participants from the chat content
-                        val participants = extractParticipantsFromContent(chatContent)
+                android.util.Log.d("HomeViewModel", "Settings loaded: $settings")
 
-                        val recap = Recap(
-                            id = java.util.UUID.randomUUID().toString(),
-                            title = "WhatsApp Chat (${participants.size} participants)",
-                            participants = participants,
-                            content = chatContent,
-                            category = null,
-                            timestamp = System.currentTimeMillis(),
-                            isStarred = false
-                        )
-
-                        val currentRecaps = _allRecaps.value.toMutableList()
-                        currentRecaps.add(0, recap)
-                        _allRecaps.value = currentRecaps
-                        _statistics.value = calculateStatistics(currentRecaps)
+                recapService.processFileAndGenerateRecap(context, uri, settings)
+                    .onSuccess { recap ->
+                        android.util.Log.d("HomeViewModel", "Recap generated successfully: ${recap.title}")
+                        // Save recap to datastore
+                        recapDataStore?.saveRecap(recap)
+                            ?.onSuccess {
+                                android.util.Log.d("HomeViewModel", "Recap saved successfully")
+                                _statistics.value = calculateStatistics(allRecaps.value)
+                            }
+                            ?.onFailure { saveError ->
+                                android.util.Log.e("HomeViewModel", "Failed to save recap", saveError)
+                                _errorMessage.value = "Failed to save recap: ${saveError.message}"
+                            }
                     }
                     .onFailure { error ->
-                        _errorMessage.value = "Failed to process file: ${error.message}"
+                        android.util.Log.e("HomeViewModel", "Failed to generate recap", error)
+                        _errorMessage.value = "Failed to generate recap: ${error.message}"
                     }
             } catch (e: Exception) {
-                _errorMessage.value = "Error accessing settings: ${e.message}"
+                android.util.Log.e("HomeViewModel", "Error processing file", e)
+                _errorMessage.value = "Error processing file: ${e.message}"
             }
 
             _isLoading.value = false
+            android.util.Log.d("HomeViewModel", "File processing completed")
         }
     }
 
-    private fun extractParticipantsFromContent(content: String): List<String> {
-        // Extract participant names from the single line content
-        val participants = mutableSetOf<String>()
-        val pattern = Regex("([^:]+):")
-
-        pattern.findAll(content).forEach { match ->
-            val participant = match.groupValues[1].trim()
-            if (participant.isNotBlank()) {
-                participants.add(participant)
-            }
-        }
-
-        return participants.toList()
-    }
 
     fun clearError() {
         _errorMessage.value = null
     }
 
     fun updateRecapCategory(recapId: String, categoryId: String?) {
-        val currentRecaps = _allRecaps.value
-        val updatedRecaps = currentRecaps.map { recap ->
-            if (recap.id == recapId) {
-                recap.copy(category = categoryId)
+        viewModelScope.launch {
+            val currentRecaps = allRecaps.value
+            val recapToUpdate = currentRecaps.find { it.id == recapId }
+            if (recapToUpdate != null) {
+                val updatedRecap = recapToUpdate.copy(category = categoryId)
+                recapDataStore?.updateRecap(updatedRecap)
+                    ?.onSuccess {
+                        _statistics.value = calculateStatistics(allRecaps.value)
+                        _showCategoryPickerForRecap.value = null
+                    }
+                    ?.onFailure { error ->
+                        _errorMessage.value = "Failed to update category: ${error.message}"
+                    }
             } else {
-                recap
+                _showCategoryPickerForRecap.value = null
             }
         }
-        _allRecaps.value = updatedRecaps
-        _statistics.value = calculateStatistics(updatedRecaps)
-        _showCategoryPickerForRecap.value = null
     }
 
     fun showCategoryPickerForRecap(recapId: String) {
@@ -225,6 +251,53 @@ class HomeViewModel(private val settingsDataStore: SettingsDataStore? = null) : 
 
     fun showFilePicker() {
         _showFilePicker.value = true
+    }
+
+    fun showDeleteConfirmation(recapId: String) {
+        _showDeleteConfirmation.value = recapId
+    }
+
+    fun hideDeleteConfirmation() {
+        _showDeleteConfirmation.value = null
+    }
+
+    fun confirmDeleteRecap() {
+        val recapId = _showDeleteConfirmation.value
+        if (recapId != null) {
+            viewModelScope.launch {
+                recapDataStore?.deleteRecap(recapId)
+                    ?.onSuccess {
+                        _statistics.value = calculateStatistics(allRecaps.value)
+                        _showDeleteConfirmation.value = null
+                    }
+                    ?.onFailure { error ->
+                        _errorMessage.value = "Failed to delete recap: ${error.message}"
+                        _showDeleteConfirmation.value = null
+                    }
+            }
+        }
+    }
+
+    fun showClearAllConfirmation() {
+        _showClearAllConfirmation.value = true
+    }
+
+    fun hideClearAllConfirmation() {
+        _showClearAllConfirmation.value = false
+    }
+
+    fun confirmClearAllRecaps() {
+        viewModelScope.launch {
+            recapDataStore?.clearAllRecaps()
+                ?.onSuccess {
+                    _statistics.value = calculateStatistics(emptyList())
+                    _showClearAllConfirmation.value = false
+                }
+                ?.onFailure { error ->
+                    _errorMessage.value = "Failed to clear all recaps: ${error.message}"
+                    _showClearAllConfirmation.value = false
+                }
+        }
     }
 
     private fun calculateStatistics(recaps: List<Recap>): RecapStatistics {

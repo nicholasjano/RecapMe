@@ -16,6 +16,9 @@ import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,13 +29,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recapme.data.models.Category
 import com.example.recapme.data.SettingsDataStore
+import com.example.recapme.data.RecapDataStore
 import com.example.recapme.ui.components.FilePicker
 import com.example.recapme.ui.components.AddCategoryDialog
 import com.example.recapme.ui.components.CategoryPickerDialog
+import com.example.recapme.ui.components.DeleteConfirmationDialog
 import com.example.recapme.ui.theme.*
 import com.example.recapme.ui.viewmodels.HomeViewModel
 
@@ -42,7 +50,8 @@ fun HomeScreen(
     viewModel: HomeViewModel = run {
         val context = LocalContext.current
         val settingsDataStore = SettingsDataStore(context)
-        viewModel { HomeViewModel(settingsDataStore) }
+        val recapDataStore = RecapDataStore(context)
+        viewModel { HomeViewModel(settingsDataStore, recapDataStore) }
     }
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -55,7 +64,11 @@ fun HomeScreen(
     val showFilePicker by viewModel.showFilePicker.collectAsState()
     val showAddCategoryDialog by viewModel.showAddCategoryDialog.collectAsState()
     val showCategoryPickerForRecap by viewModel.showCategoryPickerForRecap.collectAsState()
+    val showDeleteConfirmation by viewModel.showDeleteConfirmation.collectAsState()
+    val showClearAllConfirmation by viewModel.showClearAllConfirmation.collectAsState()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    var selectedRecap by remember { mutableStateOf<com.example.recapme.data.models.Recap?>(null) }
 
     FilePicker(
         onFileSelected = { uri -> viewModel.processSelectedFile(context, uri) },
@@ -64,7 +77,12 @@ fun HomeScreen(
     )
 
     errorMessage?.let { message ->
+        android.util.Log.e("HomeScreen", "Error message received: $message")
         LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Long
+            )
             viewModel.clearError()
         }
     }
@@ -87,6 +105,25 @@ fun HomeScreen(
             onCategorySelected = { categoryId ->
                 viewModel.updateRecapCategory(recapId, categoryId)
             }
+        )
+    }
+
+    showDeleteConfirmation?.let { recapId ->
+        val currentRecap = recaps.find { it.id == recapId }
+        DeleteConfirmationDialog(
+            title = "Delete Recap",
+            message = "Are you sure you want to delete \"${currentRecap?.title ?: "this recap"}\"? This action cannot be undone.",
+            onConfirm = viewModel::confirmDeleteRecap,
+            onDismiss = viewModel::hideDeleteConfirmation
+        )
+    }
+
+    if (showClearAllConfirmation) {
+        DeleteConfirmationDialog(
+            title = "Clear All Recaps",
+            message = "Are you sure you want to delete all recaps? This action cannot be undone.",
+            onConfirm = viewModel::confirmClearAllRecaps,
+            onDismiss = viewModel::hideClearAllConfirmation
         )
     }
 
@@ -137,6 +174,40 @@ fun HomeScreen(
                             tint = White,
                             modifier = Modifier.size(24.dp)
                         )
+                    }
+
+                    var showDropdown by remember { mutableStateOf(false) }
+
+                    Box {
+                        IconButton(
+                            onClick = { showDropdown = true }
+                        ) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showDropdown,
+                            onDismissRequest = { showDropdown = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Clear All Recaps") },
+                                onClick = {
+                                    viewModel.showClearAllConfirmation()
+                                    showDropdown = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Clear all"
+                                    )
+                                }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -207,7 +278,6 @@ fun HomeScreen(
                             }
                         )
                     }
-
 
                     items(categories) { category ->
                         FilterChip(
@@ -351,7 +421,7 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 Text(
-                                    text = "Upload a WhatsApp chat export (ZIP file) to get started",
+                                    text = "Upload a WhatsApp chat export (ZIP file under 20MB) to get started",
                                     fontSize = 14.sp,
                                     color = MediumGray,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -365,7 +435,9 @@ fun HomeScreen(
                     ) {
                         items(recaps) { recap ->
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedRecap = recap },
                                 colors = CardDefaults.cardColors(containerColor = White),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
@@ -391,15 +463,27 @@ fun HomeScreen(
                                                 color = MediumGray
                                             )
                                         }
-                                        IconButton(
-                                            onClick = { viewModel.toggleStar(recap.id) },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = if (recap.isStarred) Icons.Default.Star else Icons.Outlined.StarBorder,
-                                                contentDescription = if (recap.isStarred) "Remove from favorites" else "Add to favorites",
-                                                tint = if (recap.isStarred) WarningOrange else MediumGray
-                                            )
+                                        Row {
+                                            IconButton(
+                                                onClick = { viewModel.toggleStar(recap.id) },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (recap.isStarred) Icons.Default.Star else Icons.Outlined.StarBorder,
+                                                    contentDescription = if (recap.isStarred) "Remove from favorites" else "Add to favorites",
+                                                    tint = if (recap.isStarred) WarningOrange else MediumGray
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = { viewModel.showDeleteConfirmation(recap.id) },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Delete,
+                                                    contentDescription = "Delete recap",
+                                                    tint = MediumGray
+                                                )
+                                            }
                                         }
                                     }
 
@@ -510,13 +594,92 @@ fun HomeScreen(
                         CircularProgressIndicator(color = DarkGreen)
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Processing WhatsApp file...",
+                            text = "Validating and processing file...",
                             color = DarkGray
                         )
                     }
                 }
             }
         }
+
+        // Show detailed recap dialog
+        selectedRecap?.let { recap ->
+            Dialog(onDismissRequest = { selectedRecap = null }) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.8f),
+                    colors = CardDefaults.cardColors(containerColor = White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = recap.title,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DarkGray,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { selectedRecap = null }
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = MediumGray
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Participants section
+                        if (recap.participants.isNotEmpty()) {
+                            Text(
+                                text = "Participants:",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DarkGray
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = recap.participants.joinToString(", "),
+                                fontSize = 14.sp,
+                                color = MediumGray
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            Text(
+                                text = recap.content,
+                                fontSize = 16.sp,
+                                color = DarkGray,
+                                lineHeight = 24.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+
+        SnackbarHost(
+            hostState = snackbarHostState
+        )
     }
 }
 

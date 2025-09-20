@@ -11,7 +11,8 @@ data class AppSettings(
 enum class TimeWindow(val displayName: String) {
     PAST_DAY("Past day"),
     PAST_3_DAYS("Past 3 days"),
-    PAST_WEEK("Past week")
+    PAST_WEEK("Past week"),
+    PAST_MONTH("Past month")
 }
 
 enum class SummaryStyle(val displayName: String) {
