@@ -84,7 +84,7 @@ class WhatsAppProcessor {
 
             // First check if we have the necessary permissions for this URI
             try {
-                val permissions = context.contentResolver.getPersistedUriPermissions()
+                val permissions = context.contentResolver.persistedUriPermissions
                 android.util.Log.d("WhatsAppProcessor", "Persisted URI permissions: ${permissions.size}")
                 permissions.forEach { perm ->
                     android.util.Log.d("WhatsAppProcessor", "Permission URI: ${perm.uri}, can read: ${perm.isReadPermission}")
@@ -388,7 +388,7 @@ class WhatsAppProcessor {
             if (trimmedLine.isEmpty()) continue
 
             if (index < 5) { // Log first few lines for debugging
-                android.util.Log.d("WhatsAppProcessor", "Line $index: ${trimmedLine}")
+                android.util.Log.d("WhatsAppProcessor", "Line $index: $trimmedLine")
             }
 
             // Very flexible pattern matching for any chat-like format
@@ -534,13 +534,11 @@ class WhatsAppProcessor {
                         val sender = remainingContent.substring(0, colonIndex)
                         val content = remainingContent.substring(colonIndex + 2)
 
-                        if (true) {
-                            return ChatMessage(
-                                timestamp = date?.time ?: System.currentTimeMillis(),
-                                sender = cleanText(sender),
-                                content = cleanText(content)
-                            )
-                        }
+                        return ChatMessage(
+                            timestamp = date?.time ?: System.currentTimeMillis(),
+                            sender = cleanText(sender),
+                            content = cleanText(content)
+                        )
                     }
                 }
             } catch (_: Exception) {

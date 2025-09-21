@@ -40,7 +40,7 @@ class RecapDataStore(private val context: Context) {
             context.dataStore.edit { preferences ->
                 val currentRecapsJson = preferences[RECAPS_KEY] ?: ""
                 val currentRecaps = if (currentRecapsJson.isEmpty()) {
-                    emptyList<Recap>()
+                    emptyList()
                 } else {
                     try {
                         val type = object : TypeToken<List<Recap>>() {}.type
@@ -64,7 +64,7 @@ class RecapDataStore(private val context: Context) {
             context.dataStore.edit { preferences ->
                 val currentRecapsJson = preferences[RECAPS_KEY] ?: ""
                 val currentRecaps = if (currentRecapsJson.isEmpty()) {
-                    emptyList<Recap>()
+                    emptyList()
                 } else {
                     try {
                         val type = object : TypeToken<List<Recap>>() {}.type
@@ -90,7 +90,7 @@ class RecapDataStore(private val context: Context) {
             context.dataStore.edit { preferences ->
                 val currentRecapsJson = preferences[RECAPS_KEY] ?: ""
                 val currentRecaps = if (currentRecapsJson.isEmpty()) {
-                    emptyList<Recap>()
+                    emptyList()
                 } else {
                     try {
                         val type = object : TypeToken<List<Recap>>() {}.type

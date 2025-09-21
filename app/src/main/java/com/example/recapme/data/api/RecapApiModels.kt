@@ -6,7 +6,7 @@ data class RecapRequest(
 )
 
 data class RecapResponse(
-    val Title: String,
-    val Users: List<String>,
-    val Recap: String
+    val title: String,
+    val users: List<String>,
+    val recap: String
 )

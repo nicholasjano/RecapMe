@@ -34,14 +34,14 @@ class RecapService(
 
                     apiResult.fold(
                         onSuccess = { recapResponse ->
-                            android.util.Log.d("RecapService", "API call successful. Title: ${recapResponse.Title}")
+                            android.util.Log.d("RecapService", "API call successful. Title: ${recapResponse.title}")
 
                             // Step 3: Convert API response to Recap model
                             val recap = Recap(
                                 id = UUID.randomUUID().toString(),
-                                title = recapResponse.Title,
-                                participants = recapResponse.Users,
-                                content = recapResponse.Recap,
+                                title = recapResponse.title,
+                                participants = recapResponse.users,
+                                content = recapResponse.recap,
                                 category = null,
                                 timestamp = System.currentTimeMillis(),
                                 isStarred = false

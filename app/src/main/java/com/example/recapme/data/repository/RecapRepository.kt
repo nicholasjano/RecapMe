@@ -80,7 +80,7 @@ class RecapRepository {
                     val recapResponse = response.body()!!
 
                     // Validate response data
-                    if (recapResponse.Title.isBlank() || recapResponse.Recap.isBlank()) {
+                    if (recapResponse.title.isBlank() || recapResponse.recap.isBlank()) {
                         Result.failure(Exception("Invalid response from server: missing title or recap content"))
                     } else {
                         Result.success(recapResponse)

@@ -49,9 +49,9 @@ class RecapServiceTest {
             summaryStyle = SummaryStyle.CONCISE
         )
         val expectedApiResponse = RecapResponse(
-            Title = "Test Conversation",
-            Users = listOf("John", "Mary"),
-            Recap = "John and Mary exchanged greetings."
+            title = "Test Conversation",
+            users = listOf("John", "Mary"),
+            recap = "John and Mary exchanged greetings."
         )
 
         whenever(mockWhatsAppProcessor.processWhatsAppFile(mockContext, mockUri, testSettings))
@@ -66,9 +66,9 @@ class RecapServiceTest {
         // Then
         assertTrue(result.isSuccess)
         val recap = result.getOrNull()!!
-        assertEquals(expectedApiResponse.Title, recap.title)
-        assertEquals(expectedApiResponse.Users, recap.participants)
-        assertEquals(expectedApiResponse.Recap, recap.content)
+        assertEquals(expectedApiResponse.title, recap.title)
+        assertEquals(expectedApiResponse.users, recap.participants)
+        assertEquals(expectedApiResponse.recap, recap.content)
     }
 
     @Test
