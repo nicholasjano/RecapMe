@@ -18,12 +18,11 @@ data class Category(
 ) {
     companion object {
         fun getDefaultCategories(): List<Category> = listOf(
-            Category("work", "Work", true, "#2E7D32"),
-            Category("personal", "Personal", true, "#388E3C")
+            Category("personal", "Personal", true, "#4CAF50"),
+            Category("work", "Work", true, "#2196F3")
         )
 
         const val ALL_CATEGORY_ID = "all"
-        const val NO_CATEGORY_ID = "no_category"
     }
 }
 

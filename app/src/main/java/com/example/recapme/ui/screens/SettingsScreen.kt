@@ -21,15 +21,24 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recapme.data.models.*
+import com.example.recapme.data.SettingsDataStore
+import com.example.recapme.data.RecapDataStore
 import com.example.recapme.ui.theme.*
 import com.example.recapme.ui.viewmodels.SettingsViewModel
 import com.example.recapme.ui.viewmodels.SettingsViewModelFactory
 import com.example.recapme.ui.viewmodels.HomeViewModel
+import com.example.recapme.ui.components.AddCategoryDialog
+import com.example.recapme.ui.components.ExportSelectionDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    homeViewModel: HomeViewModel = viewModel()
+    homeViewModel: HomeViewModel = run {
+        val context = LocalContext.current
+        val settingsDataStore = SettingsDataStore(context)
+        val recapDataStore = RecapDataStore(context)
+        viewModel { HomeViewModel(settingsDataStore, recapDataStore) }
+    }
 ) {
     val context = LocalContext.current
     val viewModel: SettingsViewModel = viewModel(
@@ -37,6 +46,28 @@ fun SettingsScreen(
     )
     val settings by viewModel.settings.collectAsState()
     val categories by homeViewModel.categories.collectAsState()
+    val showAddCategoryDialog by homeViewModel.showAddCategoryDialog.collectAsState()
+    val showExportDialog by viewModel.showExportDialog.collectAsState()
+    val availableRecaps by viewModel.availableRecaps.collectAsState()
+
+    if (showAddCategoryDialog) {
+        AddCategoryDialog(
+            onDismiss = homeViewModel::hideAddCategoryDialog,
+            onConfirm = { name, color ->
+                homeViewModel.addCustomCategory(name, color)
+            }
+        )
+    }
+
+    if (showExportDialog) {
+        ExportSelectionDialog(
+            recaps = availableRecaps,
+            onDismiss = viewModel::hideExportDialog,
+            onExport = { selectedRecaps ->
+                viewModel.exportSelectedRecaps(selectedRecaps)
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -88,10 +119,10 @@ fun SettingsScreen(
                     )
                 }
 
-                SettingsSection(title = "Privacy & Data") {
+                SettingsSection(title = "Data") {
                     ClickableSetting(
                         title = "Export Summaries",
-                        subtitle = "Export your recaps as .txt or .pdf files",
+                        subtitle = "Export your recaps as individual .txt files in a zip archive",
                         onClick = { viewModel.exportSummaries() }
                     )
                 }
@@ -135,18 +166,6 @@ fun SettingsScreen(
                     }
                 }
 
-                SettingsSection(title = "AI Settings") {
-                    DropdownSetting(
-                        title = "Language Preference",
-                        subtitle = "Preferred language for summaries",
-                        selectedValue = if (settings.languagePreference == "auto") "Auto-detect" else settings.languagePreference,
-                        options = listOf("Auto-detect", "English", "Spanish", "French", "German", "Portuguese"),
-                        onValueSelected = { language ->
-                            val langCode = if (language == "Auto-detect") "auto" else language.lowercase()
-                            viewModel.updateLanguagePreference(langCode)
-                        }
-                    )
-                }
 
                 SettingsSection(title = "General") {
                     DropdownSetting(
@@ -206,29 +225,30 @@ fun DropdownSetting(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true }
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = DarkGray
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 14.sp,
-                    color = MediumGray
-                )
-            }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = DarkGray
+            )
+            Text(
+                text = subtitle,
+                fontSize = 14.sp,
+                color = MediumGray
+            )
+        }
+
+        Box {
             Row(
+                modifier = Modifier.clickable { expanded = true },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -243,31 +263,29 @@ fun DropdownSetting(
                     tint = DarkGreen
                 )
             }
-        }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        onValueSelected(option)
-                        expanded = false
-                    }
-                )
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onValueSelected(option)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
-
-        if (expanded.not()) {
-            HorizontalDivider(
-                color = LightGray,
-                thickness = 1.dp,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
     }
+
+    HorizontalDivider(
+        color = LightGray,
+        thickness = 1.dp,
+        modifier = Modifier.padding(vertical = 8.dp)
+    )
 }
 
 @Composable
