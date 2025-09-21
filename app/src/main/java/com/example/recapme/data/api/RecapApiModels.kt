@@ -2,7 +2,6 @@ package com.example.recapme.data.api
 
 data class RecapRequest(
     val conversation: String,
-    val days: Int,
     val style: String
 )
 

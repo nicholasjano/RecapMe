@@ -4,7 +4,6 @@ import com.example.recapme.data.api.RecapApiService
 import com.example.recapme.data.api.RecapRequest
 import com.example.recapme.data.api.RecapResponse
 import com.example.recapme.data.models.AppSettings
-import com.example.recapme.data.models.TimeWindow
 import com.example.recapme.data.models.SummaryStyle
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -61,13 +60,6 @@ class RecapRepository {
                 return Result.failure(Exception("Conversation content cannot be empty"))
             }
 
-            val days = when (settings.recapTimeWindow) {
-                TimeWindow.PAST_DAY -> 1
-                TimeWindow.PAST_3_DAYS -> 3
-                TimeWindow.PAST_WEEK -> 7
-                TimeWindow.PAST_MONTH -> 31
-            }
-
             val style = when (settings.summaryStyle) {
                 SummaryStyle.CONCISE -> "concise"
                 SummaryStyle.DETAILED -> "detailed"
@@ -78,7 +70,6 @@ class RecapRepository {
 
             val request = RecapRequest(
                 conversation = conversation,
-                days = days,
                 style = style
             )
 

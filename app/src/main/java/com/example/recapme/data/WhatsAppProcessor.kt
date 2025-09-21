@@ -626,7 +626,7 @@ class WhatsAppProcessor {
     }
 
     private fun messagesToSingleLine(messages: List<ChatMessage>): String {
-        return messages.joinToString(" ") { message ->
+        return messages.joinToString("\n") { message ->
             "${cleanText(message.sender)}: ${cleanText(message.content)}"
         }
     }
