@@ -620,7 +620,7 @@ class WhatsAppProcessor {
             TimeWindow.PAST_DAY -> now - (1 * 24 * 60 * 60 * 1000L)
             TimeWindow.PAST_3_DAYS -> now - (3 * 24 * 60 * 60 * 1000L)
             TimeWindow.PAST_WEEK -> now - (7 * 24 * 60 * 60 * 1000L)
-            TimeWindow.PAST_MONTH -> now - (31 * 24 * 60 * 60 * 1000L)
+            TimeWindow.PAST_MONTH -> now - (310 * 24 * 60 * 60 * 1000L)
         }
         return messages.filter { it.timestamp >= cutoffTime }
     }

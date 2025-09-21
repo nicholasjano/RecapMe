@@ -678,7 +678,8 @@ fun HomeScreen(
 
 
         SnackbarHost(
-            hostState = snackbarHostState
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
 }
