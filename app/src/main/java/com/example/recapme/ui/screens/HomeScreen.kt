@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -252,41 +251,40 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    item {
-                        FilterChip(
-                            onClick = { viewModel.selectCategory(Category.ALL_CATEGORY_ID) },
-                            label = { Text("All") },
-                            selected = selectedCategoryId == Category.ALL_CATEGORY_ID,
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = DarkGreen,
-                                selectedLabelColor = White,
-                                containerColor = Color.Transparent,
-                                labelColor = DarkGray
-                            ),
-                            border = if (selectedCategoryId == Category.ALL_CATEGORY_ID) {
-                                null
-                            } else {
-                                FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = false,
-                                    borderColor = MediumGray,
-                                    selectedBorderColor = DarkGreen,
-                                    borderWidth = 1.dp,
-                                    selectedBorderWidth = 1.dp
-                                )
-                            }
-                        )
-                    }
+                    FilterChip(
+                        onClick = { viewModel.selectCategory(Category.ALL_CATEGORY_ID) },
+                        label = { Text("All") },
+                        selected = selectedCategoryId == Category.ALL_CATEGORY_ID,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = DarkGreen,
+                            selectedLabelColor = White,
+                            containerColor = Color.Transparent,
+                            labelColor = DarkGray
+                        ),
+                        border = if (selectedCategoryId == Category.ALL_CATEGORY_ID) {
+                            null
+                        } else {
+                            FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = false,
+                                borderColor = MediumGray,
+                                selectedBorderColor = DarkGreen,
+                                borderWidth = 1.dp,
+                                selectedBorderWidth = 1.dp
+                            )
+                        }
+                    )
 
-                    items(categories) { category ->
+                    categories.forEach { category ->
                         FilterChip(
                             onClick = { viewModel.selectCategory(category.id) },
                             label = { Text(category.name) },
                             selected = selectedCategoryId == category.id,
-                            colors = FilterChipDefaults.filterChipColors(
+                                colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = Color(category.color.toColorInt()),
                                 selectedLabelColor = White,
                                 containerColor = Color.Transparent,
@@ -308,37 +306,35 @@ fun HomeScreen(
                     }
 
                     if (viewModel.canAddMoreCategories()) {
-                        item {
-                            FilterChip(
-                                onClick = { viewModel.showAddCategoryDialog() },
+                        FilterChip(
+                            onClick = { viewModel.showAddCategoryDialog() },
                                 label = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Add,
-                                            contentDescription = "Add category",
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Text("Add")
-                                    }
-                                },
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = "Add category",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text("Add")
+                                }
+                            },
+                            selected = false,
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = Color.Transparent,
+                                labelColor = DarkGreen
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
                                 selected = false,
-                                colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = Color.Transparent,
-                                    labelColor = DarkGreen
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = false,
-                                    borderColor = DarkGreen,
-                                    selectedBorderColor = DarkGreen,
-                                    borderWidth = 1.dp,
-                                    selectedBorderWidth = 1.dp
-                                )
+                                borderColor = DarkGreen,
+                                selectedBorderColor = DarkGreen,
+                                borderWidth = 1.dp,
+                                selectedBorderWidth = 1.dp
                             )
-                        }
+                        )
                     }
                 }
 

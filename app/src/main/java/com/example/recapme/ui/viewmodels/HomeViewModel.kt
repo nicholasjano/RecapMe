@@ -118,6 +118,14 @@ class HomeViewModel(
 
     fun addCustomCategory(name: String, color: String = "#4CAF50") {
         if (name.isNotBlank()) {
+            val trimmedName = name.trim()
+
+            if (trimmedName.length > 40) {
+                _errorMessage.value = "Category name must be 40 characters or less"
+                hideAddCategoryDialog()
+                return
+            }
+
             val currentCategories = categories.value
             val customCategoriesCount = currentCategories.count { !it.isDefault }
 
@@ -128,8 +136,8 @@ class HomeViewModel(
             }
 
             val newCategory = Category(
-                id = name.lowercase().replace(" ", "_"),
-                name = name,
+                id = trimmedName.lowercase().replace(" ", "_"),
+                name = trimmedName,
                 isDefault = false,
                 color = color
             )

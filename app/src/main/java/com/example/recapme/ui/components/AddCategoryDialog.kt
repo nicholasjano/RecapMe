@@ -62,8 +62,9 @@ fun AddCategoryDialog(
 
                 OutlinedTextField(
                     value = categoryName,
-                    onValueChange = { categoryName = it },
+                    onValueChange = { if (it.length <= 40) categoryName = it },
                     label = { Text("Category Name") },
+                    supportingText = { Text("${categoryName.length}/40 characters") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = DarkGreen,
