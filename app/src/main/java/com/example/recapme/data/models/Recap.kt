@@ -23,6 +23,8 @@ data class Category(
         )
 
         const val ALL_CATEGORY_ID = "all"
+        const val MAX_TOTAL_CATEGORIES = 5
+        const val MAX_CUSTOM_CATEGORIES = 3
     }
 }
 

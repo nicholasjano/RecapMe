@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import com.example.recapme.data.WhatsAppProcessor
 import com.example.recapme.data.SettingsDataStore
 import com.example.recapme.data.RecapDataStore
+import com.example.recapme.data.CategoryDataStore
 import com.example.recapme.data.RecapService
 import com.example.recapme.data.repository.RecapRepository
 import com.example.recapme.data.models.Recap
@@ -23,7 +24,8 @@ import com.example.recapme.data.models.RecapStatistics
 
 class HomeViewModel(
     private val settingsDataStore: SettingsDataStore? = null,
-    private val recapDataStore: RecapDataStore? = null
+    private val recapDataStore: RecapDataStore? = null,
+    private val categoryDataStore: CategoryDataStore? = null
 ) : ViewModel() {
     private val whatsAppProcessor = WhatsAppProcessor()
     private val recapRepository = RecapRepository()
@@ -41,8 +43,11 @@ class HomeViewModel(
         emptyList()
     ) ?: MutableStateFlow<List<Recap>>(emptyList()).asStateFlow()
 
-    private val _categories = MutableStateFlow(Category.getDefaultCategories())
-    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
+    val categories: StateFlow<List<Category>> = categoryDataStore?.categoriesFlow?.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        Category.getDefaultCategories()
+    ) ?: MutableStateFlow(Category.getDefaultCategories()).asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -105,18 +110,31 @@ class HomeViewModel(
         _showAddCategoryDialog.value = false
     }
 
+    fun canAddMoreCategories(): Boolean {
+        val currentCategories = categories.value
+        val customCategoriesCount = currentCategories.count { !it.isDefault }
+        return customCategoriesCount < Category.MAX_CUSTOM_CATEGORIES
+    }
+
     fun addCustomCategory(name: String, color: String = "#4CAF50") {
         if (name.isNotBlank()) {
+            val currentCategories = categories.value
+            val customCategoriesCount = currentCategories.count { !it.isDefault }
+
+            if (customCategoriesCount >= Category.MAX_CUSTOM_CATEGORIES) {
+                _errorMessage.value = "Maximum of ${Category.MAX_CUSTOM_CATEGORIES} custom categories allowed (${Category.MAX_TOTAL_CATEGORIES} total including defaults)"
+                hideAddCategoryDialog()
+                return
+            }
+
             val newCategory = Category(
                 id = name.lowercase().replace(" ", "_"),
                 name = name,
                 isDefault = false,
                 color = color
             )
-            val currentCategories = _categories.value.toMutableList()
-            if (!currentCategories.any { it.id == newCategory.id }) {
-                currentCategories.add(newCategory)
-                _categories.value = currentCategories
+            viewModelScope.launch {
+                categoryDataStore?.addCategory(newCategory)
             }
         }
         hideAddCategoryDialog()
@@ -124,9 +142,8 @@ class HomeViewModel(
 
     fun deleteCategory(categoryId: String) {
         viewModelScope.launch {
-            val currentCategories = _categories.value.toMutableList()
-            currentCategories.removeAll { it.id == categoryId && !it.isDefault }
-            _categories.value = currentCategories
+            // Remove from persistent storage
+            categoryDataStore?.deleteCategory(categoryId)
 
             if (_selectedCategoryId.value == categoryId) {
                 _selectedCategoryId.value = Category.ALL_CATEGORY_ID

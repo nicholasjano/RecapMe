@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recapme.data.models.*
 import com.example.recapme.data.SettingsDataStore
 import com.example.recapme.data.RecapDataStore
+import com.example.recapme.data.CategoryDataStore
 import com.example.recapme.ui.theme.*
 import com.example.recapme.ui.viewmodels.SettingsViewModel
 import com.example.recapme.ui.viewmodels.SettingsViewModelFactory
@@ -37,7 +38,8 @@ fun SettingsScreen(
         val context = LocalContext.current
         val settingsDataStore = SettingsDataStore(context)
         val recapDataStore = RecapDataStore(context)
-        viewModel { HomeViewModel(settingsDataStore, recapDataStore) }
+        val categoryDataStore = CategoryDataStore(context)
+        viewModel { HomeViewModel(settingsDataStore, recapDataStore, categoryDataStore) }
     }
 ) {
     val context = LocalContext.current
@@ -146,11 +148,13 @@ fun SettingsScreen(
                             )
                         }
 
-                        ClickableSetting(
-                            title = "Add New Category",
-                            subtitle = "Create a custom category for your recaps",
-                            onClick = { homeViewModel.showAddCategoryDialog() }
-                        )
+                        if (homeViewModel.canAddMoreCategories()) {
+                            ClickableSetting(
+                                title = "Add New Category",
+                                subtitle = "Create a custom category for your recaps",
+                                onClick = { homeViewModel.showAddCategoryDialog() }
+                            )
+                        }
                     }
                 }
 

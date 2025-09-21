@@ -37,6 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.recapme.data.models.Category
 import com.example.recapme.data.SettingsDataStore
 import com.example.recapme.data.RecapDataStore
+import com.example.recapme.data.CategoryDataStore
 import com.example.recapme.ui.components.FilePicker
 import com.example.recapme.ui.components.AddCategoryDialog
 import com.example.recapme.ui.components.CategoryPickerDialog
@@ -51,7 +52,8 @@ fun HomeScreen(
         val context = LocalContext.current
         val settingsDataStore = SettingsDataStore(context)
         val recapDataStore = RecapDataStore(context)
-        viewModel { HomeViewModel(settingsDataStore, recapDataStore) }
+        val categoryDataStore = CategoryDataStore(context)
+        viewModel { HomeViewModel(settingsDataStore, recapDataStore, categoryDataStore) }
     }
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -305,36 +307,38 @@ fun HomeScreen(
                         )
                     }
 
-                    item {
-                        FilterChip(
-                            onClick = { viewModel.showAddCategoryDialog() },
-                            label = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Add,
-                                        contentDescription = "Add category",
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text("Add")
-                                }
-                            },
-                            selected = false,
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = Color.Transparent,
-                                labelColor = DarkGreen
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
+                    if (viewModel.canAddMoreCategories()) {
+                        item {
+                            FilterChip(
+                                onClick = { viewModel.showAddCategoryDialog() },
+                                label = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Add,
+                                            contentDescription = "Add category",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text("Add")
+                                    }
+                                },
                                 selected = false,
-                                borderColor = DarkGreen,
-                                selectedBorderColor = DarkGreen,
-                                borderWidth = 1.dp,
-                                selectedBorderWidth = 1.dp
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color.Transparent,
+                                    labelColor = DarkGreen
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = false,
+                                    borderColor = DarkGreen,
+                                    selectedBorderColor = DarkGreen,
+                                    borderWidth = 1.dp,
+                                    selectedBorderWidth = 1.dp
+                                )
                             )
-                        )
+                        }
                     }
                 }
 
