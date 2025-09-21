@@ -23,4 +23,5 @@ kotlin.code.style=official
 android.nonTransitiveRClass=true
 
 # API Configuration
-RECAP_API_KEY=test123
+# IMPORTANT: Replace "your_api_key_here" with your actual API key
+RECAP_API_KEY=your_api_key_here

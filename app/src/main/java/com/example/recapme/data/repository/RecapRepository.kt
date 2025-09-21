@@ -6,6 +6,7 @@ import com.example.recapme.data.api.RecapResponse
 import com.example.recapme.data.models.AppSettings
 import com.example.recapme.data.models.TimeWindow
 import com.example.recapme.data.models.SummaryStyle
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -17,10 +18,27 @@ class RecapRepository {
 
     init {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (com.example.recapme.BuildConfig.DEBUG) HttpLoggingInterceptor.Level.HEADERS else HttpLoggingInterceptor.Level.NONE
+            // Never log sensitive headers
+            redactHeader("X-API-Key")
+            redactHeader("Authorization")
+        }
+
+        // API Key interceptor
+        val apiKeyInterceptor = Interceptor { chain ->
+            val originalRequest = chain.request()
+            val requestBuilder = originalRequest.newBuilder()
+
+            // Add API key header (never log this)
+            if (com.example.recapme.BuildConfig.RECAP_API_KEY.isNotEmpty()) {
+                requestBuilder.addHeader("X-API-Key", com.example.recapme.BuildConfig.RECAP_API_KEY)
+            }
+
+            chain.proceed(requestBuilder.build())
         }
 
         val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(apiKeyInterceptor) // Add API key first
             .addInterceptor(logging)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
@@ -78,6 +96,7 @@ class RecapRepository {
                     }
                 }
                 response.code() == 400 -> Result.failure(Exception("Invalid request format"))
+                response.code() == 401 -> Result.failure(Exception("Authentication failed: API access denied. Please check if the server requires authentication"))
                 response.code() == 429 -> Result.failure(Exception("Rate limit exceeded. Please try again later"))
                 response.code() == 500 -> Result.failure(Exception("Server error. Please try again later"))
                 response.code() in 500..599 -> Result.failure(Exception("Server is temporarily unavailable"))

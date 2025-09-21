@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+gradle.properties
+keystore.properties
+*.keystore
+*.jks
+**/build/generated/source/buildConfig/
