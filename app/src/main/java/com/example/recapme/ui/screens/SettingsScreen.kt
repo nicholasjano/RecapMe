@@ -127,18 +127,6 @@ fun SettingsScreen(
                     )
                 }
 
-                SettingsSection(title = "App Behavior") {
-                    DropdownSetting(
-                        title = "Show Participants by",
-                        subtitle = "How to display participant information",
-                        selectedValue = settings.showParticipantsBy.displayName,
-                        options = ParticipantDisplay.entries.map { it.displayName },
-                        onValueSelected = { displayName ->
-                            val display = ParticipantDisplay.entries.find { it.displayName == displayName }
-                            display?.let { viewModel.updateParticipantDisplay(it) }
-                        }
-                    )
-                }
 
                 SettingsSection(title = "Categories") {
                     Column {

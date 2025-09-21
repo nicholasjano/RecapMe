@@ -15,8 +15,6 @@ class SettingsTest {
 
         assertEquals(TimeWindow.PAST_WEEK, settings.recapTimeWindow)
         assertEquals(SummaryStyle.CONCISE, settings.summaryStyle)
-        assertEquals(ParticipantDisplay.NAME, settings.showParticipantsBy)
-        assertEquals("auto", settings.languagePreference)
         assertEquals(AppTheme.SYSTEM_DEFAULT, settings.theme)
     }
 
@@ -36,10 +34,6 @@ class SettingsTest {
         assertEquals("Formal", SummaryStyle.FORMAL.displayName)
     }
 
-    @Test
-    fun participantDisplay_displayName_isCorrect() {
-        assertEquals("Name", ParticipantDisplay.NAME.displayName)
-    }
 
     @Test
     fun appTheme_displayName_isCorrect() {
@@ -51,13 +45,10 @@ class SettingsTest {
         val originalSettings = AppSettings()
         val updatedSettings = originalSettings.copy(
             recapTimeWindow = TimeWindow.PAST_WEEK,
-            summaryStyle = SummaryStyle.CONCISE,
-            languagePreference = "en"
+            summaryStyle = SummaryStyle.CONCISE
         )
 
         assertEquals(TimeWindow.PAST_WEEK, updatedSettings.recapTimeWindow)
         assertEquals(SummaryStyle.CONCISE, updatedSettings.summaryStyle)
-        assertEquals("en", updatedSettings.languagePreference)
-        assertEquals(ParticipantDisplay.NAME, updatedSettings.showParticipantsBy) // unchanged
     }
 }

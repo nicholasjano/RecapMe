@@ -51,11 +51,6 @@ class SettingsViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun updateParticipantDisplay(display: ParticipantDisplay) {
-        viewModelScope.launch {
-            settingsDataStore.updateParticipantDisplay(display)
-        }
-    }
 
 
     fun updateTheme(theme: AppTheme) {

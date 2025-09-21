@@ -17,8 +17,6 @@ class SettingsDataStore(private val context: Context) {
 
         private val RECAP_TIME_WINDOW = stringPreferencesKey("recap_time_window")
         private val SUMMARY_STYLE = stringPreferencesKey("summary_style")
-        private val PARTICIPANT_DISPLAY = stringPreferencesKey("participant_display")
-        private val LANGUAGE_PREFERENCE = stringPreferencesKey("language_preference")
         private val THEME = stringPreferencesKey("theme")
     }
 
@@ -34,12 +32,6 @@ class SettingsDataStore(private val context: Context) {
             } catch (_: IllegalArgumentException) {
                 SummaryStyle.CONCISE
             },
-            showParticipantsBy = try {
-                ParticipantDisplay.valueOf(preferences[PARTICIPANT_DISPLAY] ?: ParticipantDisplay.NAME.name)
-            } catch (_: IllegalArgumentException) {
-                ParticipantDisplay.NAME
-            },
-            languagePreference = preferences[LANGUAGE_PREFERENCE] ?: "auto",
             theme = try {
                 AppTheme.valueOf(preferences[THEME] ?: AppTheme.SYSTEM_DEFAULT.name)
             } catch (_: IllegalArgumentException) {
@@ -60,17 +52,7 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
-    suspend fun updateParticipantDisplay(display: ParticipantDisplay) {
-        context.dataStore.edit { preferences ->
-            preferences[PARTICIPANT_DISPLAY] = display.name
-        }
-    }
 
-    suspend fun updateLanguagePreference(language: String) {
-        context.dataStore.edit { preferences ->
-            preferences[LANGUAGE_PREFERENCE] = language
-        }
-    }
 
     suspend fun updateTheme(theme: AppTheme) {
         context.dataStore.edit { preferences ->
