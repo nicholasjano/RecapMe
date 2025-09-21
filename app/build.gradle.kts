@@ -22,6 +22,10 @@ android {
         // Add API key to BuildConfig
         val apiKey = project.findProperty("RECAP_API_KEY")?.toString() ?: ""
         buildConfigField("String", "RECAP_API_KEY", "\"$apiKey\"")
+
+        // Add API URL to BuildConfig
+        val apiUrl = project.findProperty("RECAP_API_URL")?.toString() ?: ""
+        buildConfigField("String", "RECAP_API_URL", "\"$apiUrl\"")
     }
 
     buildTypes {

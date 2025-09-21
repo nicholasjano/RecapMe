@@ -45,7 +45,7 @@ class RecapRepository {
             .build()
 
         val retrofit = Retrofit.Builder()
-            .baseUrl("https://recapme-backend.onrender.com/api/")
+            .baseUrl(com.example.recapme.BuildConfig.RECAP_API_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

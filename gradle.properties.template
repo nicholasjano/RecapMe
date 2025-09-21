@@ -25,3 +25,4 @@ android.nonTransitiveRClass=true
 # API Configuration
 # IMPORTANT: Replace "your_api_key_here" with your actual API key
 RECAP_API_KEY=your_api_key_here
+RECAP_API_URL=your_api_url_here

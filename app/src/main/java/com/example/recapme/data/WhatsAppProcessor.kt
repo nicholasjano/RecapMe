@@ -472,7 +472,7 @@ class WhatsAppProcessor {
 
             android.util.Log.d("WhatsAppProcessor", "User format - Timestamp: $timestamp, Sender: $sender, Content: $content")
 
-            if (sender.isNotEmpty() && content.isNotEmpty() && !isSystemMessage(content)) {
+            if (sender.isNotEmpty() && content.isNotEmpty()) {
                 return ChatMessage(
                     timestamp = parseDateString(timestamp) ?: System.currentTimeMillis(),
                     sender = cleanText(sender),
@@ -491,7 +491,7 @@ class WhatsAppProcessor {
 
             android.util.Log.d("WhatsAppProcessor", "Bracket format - Timestamp: $timestamp, Sender: $sender, Content: $content")
 
-            if (sender.isNotEmpty() && content.isNotEmpty() && !isSystemMessage(content)) {
+            if (sender.isNotEmpty() && content.isNotEmpty()) {
                 return ChatMessage(
                     timestamp = parseDateString(timestamp) ?: System.currentTimeMillis(),
                     sender = cleanText(sender),
@@ -508,7 +508,7 @@ class WhatsAppProcessor {
 
             // Basic validation - sender should not be too long and should contain word characters
             if (sender.length <= 50 && sender.matches(".*[A-Za-z0-9]+.*".toRegex()) &&
-                content.isNotEmpty() && !isSystemMessage(content)) {
+                content.isNotEmpty()) {
 
                 android.util.Log.d("WhatsAppProcessor", "Simple parse - Sender: $sender, Content: ${content.take(50)}")
 
@@ -534,7 +534,7 @@ class WhatsAppProcessor {
                         val sender = remainingContent.substring(0, colonIndex)
                         val content = remainingContent.substring(colonIndex + 2)
 
-                        if (!isSystemMessage(content)) {
+                        if (true) {
                             return ChatMessage(
                                 timestamp = date?.time ?: System.currentTimeMillis(),
                                 sender = cleanText(sender),
@@ -552,9 +552,9 @@ class WhatsAppProcessor {
     }
 
     private fun parseDateString(dateStr: String): Long? {
-        // Based on the user's example: [2025-09-16, 5:31:01 PM]
+        // Based on the example: [2025-09-16, 5:31:01 PM]
         val formats = listOf(
-            SimpleDateFormat("yyyy-MM-dd, h:mm:ss a", Locale.ENGLISH), // Matches user's format exactly
+            SimpleDateFormat("yyyy-MM-dd, h:mm:ss a", Locale.ENGLISH), // Matches format exactly
             SimpleDateFormat("yyyy-MM-dd, HH:mm:ss", Locale.getDefault()),
             SimpleDateFormat("dd/MM/yy, HH:mm:ss", Locale.getDefault()),
             SimpleDateFormat("dd/MM/yyyy, HH:mm:ss", Locale.getDefault()),
@@ -584,34 +584,6 @@ class WhatsAppProcessor {
 
         android.util.Log.w("WhatsAppProcessor", "Could not parse date: $dateStr")
         return null
-    }
-
-    private fun isSystemMessage(content: String): Boolean {
-        val systemMessages = listOf(
-            "joined using this group's invite link",
-            "left",
-            "was added",
-            "was removed",
-            "changed the group description",
-            "changed the subject",
-            "Messages and calls are end-to-end encrypted",
-            "<Media omitted>",
-            "This message was deleted",
-            "‎Messages and calls are end-to-end encrypted", // User's specific format with special character
-            "created group",
-            "You created group",
-            "security code changed",
-            "Missed voice call",
-            "Missed video call"
-        )
-
-        // Also check if the message is empty or just contains special characters
-        val trimmed = content.trim()
-        if (trimmed.isEmpty() || trimmed.all { it.isWhitespace() || it in "‎\u200B\u200C\u200D\uFEFF" }) {
-            return true
-        }
-
-        return systemMessages.any { content.contains(it, ignoreCase = true) }
     }
 
     private fun filterByTimeWindow(messages: List<ChatMessage>, timeWindow: TimeWindow): List<ChatMessage> {
