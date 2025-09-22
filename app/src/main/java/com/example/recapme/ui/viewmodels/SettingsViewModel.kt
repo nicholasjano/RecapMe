@@ -64,15 +64,14 @@ class SettingsViewModel(context: Context) : ViewModel() {
             try {
                 val recaps = recapDataStore.recapsFlow.first()
                 if (recaps.isEmpty()) {
-                    android.util.Log.w("SettingsViewModel", "No recaps to export")
                     return@launch
                 }
 
                 _availableRecaps.value = recaps
                 _showExportDialog.value = true
 
-            } catch (e: Exception) {
-                android.util.Log.e("SettingsViewModel", "Failed to load recaps for export", e)
+            } catch (_: Exception) {
+                // Failed to load recaps for export
             }
         }
     }
@@ -85,7 +84,6 @@ class SettingsViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 if (selectedRecaps.isEmpty()) {
-                    android.util.Log.w("SettingsViewModel", "No recaps selected for export")
                     return@launch
                 }
 
@@ -148,13 +146,12 @@ class SettingsViewModel(context: Context) : ViewModel() {
                 chooserIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 appContext.startActivity(chooserIntent)
 
-                android.util.Log.i("SettingsViewModel", "Export completed: ${selectedRecaps.size} recaps exported to $zipFileName")
 
                 // Hide dialog after successful export
                 _showExportDialog.value = false
 
-            } catch (e: Exception) {
-                android.util.Log.e("SettingsViewModel", "Export failed", e)
+            } catch (_: Exception) {
+                // Export failed
             }
         }
     }

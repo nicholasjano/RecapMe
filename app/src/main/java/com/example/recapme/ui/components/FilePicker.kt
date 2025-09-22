@@ -24,8 +24,7 @@ fun FilePicker(
                     uri,
                     android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
-            } catch (e: Exception) {
-                android.util.Log.w("FilePicker", "Could not take persistable permission: ${e.message}")
+            } catch (_: Exception) {
                 // Continue anyway as some URIs might not support persistent permissions
             }
             onFileSelected(uri)
@@ -38,8 +37,8 @@ fun FilePicker(
             // Allow ZIP files and any other files as fallback
             try {
                 launcher.launch(arrayOf("application/zip", "application/x-zip-compressed", "*/*"))
-            } catch (e: Exception) {
-                android.util.Log.e("FilePicker", "Error launching file picker", e)
+            } catch (_: Exception) {
+                // Error launching file picker
             }
             onTriggerConsumed()
         }

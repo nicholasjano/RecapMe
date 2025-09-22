@@ -78,7 +78,6 @@ fun HomeScreen(
     )
 
     errorMessage?.let { message ->
-        android.util.Log.e("HomeScreen", "Error message received: $message")
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(
                 message = message,

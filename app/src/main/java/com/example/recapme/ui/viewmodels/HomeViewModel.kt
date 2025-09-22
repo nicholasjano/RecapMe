@@ -205,39 +205,29 @@ class HomeViewModel(
             _errorMessage.value = null
 
             try {
-                android.util.Log.d("HomeViewModel", "Starting file processing for URI: $uri")
-
                 // Get current settings, or use defaults if datastore is not available
                 val settings = settingsDataStore?.settingsFlow?.first()
                     ?: com.example.recapme.data.models.AppSettings()
 
-                android.util.Log.d("HomeViewModel", "Settings loaded: $settings")
-
                 recapService.processFileAndGenerateRecap(context, uri, settings)
                     .onSuccess { recap ->
-                        android.util.Log.d("HomeViewModel", "Recap generated successfully: ${recap.title}")
                         // Save recap to datastore
                         recapDataStore?.saveRecap(recap)
                             ?.onSuccess {
-                                android.util.Log.d("HomeViewModel", "Recap saved successfully")
                                 _statistics.value = calculateStatistics(allRecaps.value)
                             }
                             ?.onFailure { saveError ->
-                                android.util.Log.e("HomeViewModel", "Failed to save recap", saveError)
                                 _errorMessage.value = "Failed to save recap: ${saveError.message}"
                             }
                     }
                     .onFailure { error ->
-                        android.util.Log.e("HomeViewModel", "Failed to generate recap", error)
                         _errorMessage.value = "Failed to generate recap: ${error.message}"
                     }
             } catch (e: Exception) {
-                android.util.Log.e("HomeViewModel", "Error processing file", e)
                 _errorMessage.value = "Error processing file: ${e.message}"
             }
 
             _isLoading.value = false
-            android.util.Log.d("HomeViewModel", "File processing completed")
         }
     }
 

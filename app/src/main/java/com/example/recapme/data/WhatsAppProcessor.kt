@@ -70,49 +70,36 @@ class WhatsAppProcessor {
 
     private fun validateFileInput(context: Context, uri: Uri): Exception? {
         return try {
-            android.util.Log.d("WhatsAppProcessor", "Validating file input for URI: $uri")
-            android.util.Log.d("WhatsAppProcessor", "URI scheme: ${uri.scheme}, authority: ${uri.authority}")
 
             // Check if this is a Google Drive URI
             val isGoogleDrive = uri.authority?.contains("com.google.android.apps.docs.storage") == true ||
                     uri.authority?.contains("drive.google.com") == true
 
             if (isGoogleDrive) {
-                android.util.Log.d("WhatsAppProcessor", "Detected Google Drive file, using streaming approach")
                 return null // Skip further validation as we'll handle this during processing
             }
 
             // First check if we have the necessary permissions for this URI
             try {
-                val permissions = context.contentResolver.persistedUriPermissions
-                android.util.Log.d("WhatsAppProcessor", "Persisted URI permissions: ${permissions.size}")
-                permissions.forEach { perm ->
-                    android.util.Log.d("WhatsAppProcessor", "Permission URI: ${perm.uri}, can read: ${perm.isReadPermission}")
-                }
-            } catch (e: Exception) {
-                android.util.Log.w("WhatsAppProcessor", "Could not check URI permissions: ${e.message}")
+                context.contentResolver.persistedUriPermissions
+            } catch (_: Exception) {
+                // Could not check URI permissions
             }
 
             // Check if URI is valid and get basic info
             val cursor = try {
                 context.contentResolver.query(uri, null, null, null, null)
-            } catch (e: SecurityException) {
-                android.util.Log.e("WhatsAppProcessor", "Security exception when querying URI", e)
+            } catch (_: SecurityException) {
                 return Exception("Permission denied - please ensure the file is accessible and try again")
-            } catch (e: Exception) {
-                android.util.Log.e("WhatsAppProcessor", "Exception when querying URI", e)
+            } catch (_: Exception) {
                 return Exception("Unable to access file information - please try selecting the file again")
             }
 
             cursor?.use {
                 if (it.moveToFirst()) {
-                    val displayNameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
                     val sizeIndex = it.getColumnIndex(android.provider.OpenableColumns.SIZE)
 
-                    val displayName = if (displayNameIndex >= 0) it.getString(displayNameIndex) else "unknown"
                     val size = if (sizeIndex >= 0) it.getLong(sizeIndex) else -1
-
-                    android.util.Log.d("WhatsAppProcessor", "File info - Name: $displayName, Size: $size")
 
                     if (size > 0 && size > MAX_FILE_SIZE_BYTES) {
                         return Exception("File too large. Maximum size allowed is ${MAX_FILE_SIZE_MB}MB")
@@ -123,11 +110,9 @@ class WhatsAppProcessor {
             // Check if URI is accessible
             val inputStream = try {
                 context.contentResolver.openInputStream(uri)
-            } catch (e: SecurityException) {
-                android.util.Log.e("WhatsAppProcessor", "Security exception when opening input stream", e)
+            } catch (_: SecurityException) {
                 return Exception("Permission denied - unable to access the selected file. Please try selecting the file again or check app permissions in Settings")
-            } catch (e: Exception) {
-                android.util.Log.e("WhatsAppProcessor", "Exception when opening input stream", e)
+            } catch (_: Exception) {
                 return Exception("Unable to open the selected file - please try again")
             }
 
@@ -141,8 +126,7 @@ class WhatsAppProcessor {
                 inputStream.use { stream ->
                     stream.read(testBuffer)
                 }
-            } catch (e: Exception) {
-                android.util.Log.e("WhatsAppProcessor", "Exception when reading from stream", e)
+            } catch (_: Exception) {
                 return Exception("Unable to read from the selected file - please ensure it's not corrupted")
             }
 
@@ -150,29 +134,23 @@ class WhatsAppProcessor {
                 return Exception("The selected file appears to be empty")
             }
 
-            android.util.Log.d("WhatsAppProcessor", "File validation successful, proceeding to ZIP structure validation")
-
             // Validate it's a ZIP file by trying to read ZIP structure
             validateZipStructure(context, uri)
-        } catch (e: SecurityException) {
-            android.util.Log.e("WhatsAppProcessor", "Security exception during file validation", e)
+        } catch (_: SecurityException) {
             Exception("Permission denied - please check app permissions in Settings or try selecting the file again")
         } catch (e: Exception) {
-            android.util.Log.e("WhatsAppProcessor", "Error validating file", e)
             Exception("Error validating file: ${e.message}")
         }
     }
 
     private fun validateZipStructure(context: Context, uri: Uri): Exception? {
         return try {
-            android.util.Log.d("WhatsAppProcessor", "Starting ZIP structure validation for URI: $uri")
 
             // Check if this is a Google Drive URI - skip detailed validation for streaming
             val isGoogleDrive = uri.authority?.contains("com.google.android.apps.docs.storage") == true ||
                     uri.authority?.contains("drive.google.com") == true
 
             if (isGoogleDrive) {
-                android.util.Log.d("WhatsAppProcessor", "Google Drive file detected, performing basic validation only")
                 // For Google Drive files, just check if we can open the stream
                 val inputStream = context.contentResolver.openInputStream(uri)
                     ?: return Exception("Unable to access Google Drive file - please try downloading it locally first")
@@ -184,16 +162,12 @@ class WhatsAppProcessor {
                     if (bytesRead <= 0) {
                         return Exception("Unable to read from Google Drive file - please ensure it's downloaded and try again")
                     }
-                    android.util.Log.d("WhatsAppProcessor", "Google Drive file is accessible")
                     return null // Skip detailed ZIP validation for Google Drive
                 }
             }
 
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                android.util.Log.d("WhatsAppProcessor", "Input stream opened successfully")
-
                 ZipInputStream(inputStream).use { zipStream ->
-                    android.util.Log.d("WhatsAppProcessor", "ZIP stream created successfully")
 
                     var hasValidTxtFile = false
                     var entry = zipStream.nextEntry
@@ -201,7 +175,6 @@ class WhatsAppProcessor {
 
                     while (entry != null) {
                         entryCount++
-                        android.util.Log.d("WhatsAppProcessor", "Processing entry $entryCount: ${entry.name}, isDirectory: ${entry.isDirectory}")
 
                         // Skip directories
                         if (entry.isDirectory) {
@@ -211,11 +184,9 @@ class WhatsAppProcessor {
 
                         val fileName = entry.name
                         val fileSize = entry.size
-                        android.util.Log.d("WhatsAppProcessor", "File: $fileName, size: $fileSize")
 
                         // Only process .txt files, ignore all other file types
                         if (fileName.endsWith(".txt", ignoreCase = true)) {
-                            android.util.Log.d("WhatsAppProcessor", "Found .txt file: $fileName")
 
                             try {
                                 // Check individual file size (if available from ZIP entry)
@@ -225,7 +196,6 @@ class WhatsAppProcessor {
 
                                 // Validate file size by reading content if ZIP entry size is not available
                                 val content = readZipEntryContent(zipStream)
-                                android.util.Log.d("WhatsAppProcessor", "Read content length: ${content.length}")
 
                                 if (content.length > MAX_FILE_SIZE_BYTES) {
                                     return Exception("Text file '$fileName' is too large. Maximum size allowed is ${MAX_FILE_SIZE_MB}MB per file")
@@ -234,46 +204,33 @@ class WhatsAppProcessor {
                                 // Validate file content is not suspicious
                                 if (content.isNotBlank()) {
                                     hasValidTxtFile = true
-                                    android.util.Log.d("WhatsAppProcessor", "Valid .txt file found with content")
                                 }
-                            } catch (e: Exception) {
-                                android.util.Log.w("WhatsAppProcessor", "Error reading txt file $fileName: ${e.message}")
+                            } catch (_: Exception) {
                                 // Continue to next entry instead of failing completely
                             }
-                        } else {
-                            android.util.Log.d("WhatsAppProcessor", "Skipping non-txt file: $fileName")
                         }
                         // Silently ignore non-txt files (images, videos, etc.)
 
                         try {
                             entry = zipStream.nextEntry
-                        } catch (e: Exception) {
-                            android.util.Log.w("WhatsAppProcessor", "Error moving to next entry: ${e.message}")
+                        } catch (_: Exception) {
                             break
                         }
                     }
 
-                    android.util.Log.d("WhatsAppProcessor", "Processed $entryCount entries, hasValidTxtFile: $hasValidTxtFile")
 
                     if (!hasValidTxtFile) {
                         return Exception("No valid WhatsApp chat text files found in the ZIP archive")
                     }
 
-                    android.util.Log.d("WhatsAppProcessor", "ZIP validation successful")
                     null // No errors
                 }
-            } ?: run {
-                android.util.Log.e("WhatsAppProcessor", "Failed to open input stream")
-                Exception("Unable to open file - please check file permissions")
-            }
-        } catch (e: java.util.zip.ZipException) {
-            android.util.Log.e("WhatsAppProcessor", "ZIP format error", e)
+            } ?: Exception("Unable to open file - please check file permissions")
+        } catch (_: java.util.zip.ZipException) {
             Exception("Invalid ZIP file format - please ensure you selected a valid WhatsApp chat export")
-        } catch (e: SecurityException) {
-            android.util.Log.e("WhatsAppProcessor", "Security exception", e)
+        } catch (_: SecurityException) {
             Exception("Permission denied - unable to access the selected file")
         } catch (e: Exception) {
-            android.util.Log.e("WhatsAppProcessor", "Error validating ZIP structure", e)
             Exception("Error reading ZIP file: ${e.message}")
         }
     }
@@ -303,12 +260,6 @@ class WhatsAppProcessor {
     private fun extractMessagesFromZip(context: Context, uri: Uri): List<ChatMessage> {
         val messages = mutableListOf<ChatMessage>()
 
-        // Check if this is a Google Drive URI
-        val isGoogleDrive = uri.authority?.contains("com.google.android.apps.docs.storage") == true ||
-                uri.authority?.contains("drive.google.com") == true
-
-        android.util.Log.d("WhatsAppProcessor", "Extracting messages from ZIP, isGoogleDrive: $isGoogleDrive")
-
         context.contentResolver.openInputStream(uri)?.use { inputStream ->
             try {
                 ZipInputStream(inputStream).use { zipStream ->
@@ -317,79 +268,55 @@ class WhatsAppProcessor {
 
                     while (entry != null) {
                         entryCount++
-                        android.util.Log.d("WhatsAppProcessor", "Processing entry $entryCount: ${entry.name}")
 
                         // Only process .txt files, ignore everything else
                         if (entry.name.endsWith(".txt", ignoreCase = true) && !entry.isDirectory) {
                             try {
-                                android.util.Log.d("WhatsAppProcessor", "Reading .txt file: ${entry.name}")
-
                                 // Read content with size validation
                                 val content = readZipEntryContent(zipStream)
-                                android.util.Log.d("WhatsAppProcessor", "Content length: ${content.length}")
 
                                 // Additional validation for chat content
                                 if (isValidChatContent(content)) {
                                     val parsedMessages = parseChatContent(content)
-                                    android.util.Log.d("WhatsAppProcessor", "Parsed ${parsedMessages.size} messages from ${entry.name}")
                                     messages.addAll(parsedMessages)
-                                } else {
-                                    android.util.Log.w("WhatsAppProcessor", "Content validation failed for ${entry.name}")
                                 }
-                            } catch (e: Exception) {
-                                android.util.Log.w("WhatsAppProcessor", "Error processing ${entry.name}: ${e.message}")
+                            } catch (_: Exception) {
                                 // Skip this file if there's an error reading it
                                 // Continue processing other files
                             }
-                        } else {
-                            android.util.Log.d("WhatsAppProcessor", "Skipping non-txt file: ${entry.name}")
                         }
                         // Silently skip non-txt files (images, media, etc.)
 
                         try {
                             entry = zipStream.nextEntry
-                        } catch (e: Exception) {
-                            android.util.Log.w("WhatsAppProcessor", "Error moving to next entry: ${e.message}")
+                        } catch (_: Exception) {
                             break
                         }
                     }
 
-                    android.util.Log.d("WhatsAppProcessor", "Finished processing ZIP file. Total messages extracted: ${messages.size}")
                 }
             } catch (e: Exception) {
-                android.util.Log.e("WhatsAppProcessor", "Error creating ZIP stream", e)
                 throw e
             }
-        } ?: run {
-            android.util.Log.e("WhatsAppProcessor", "Failed to open input stream for message extraction")
-            throw Exception("Unable to access the selected file")
-        }
+        } ?: throw Exception("Unable to access the selected file")
 
         return messages
     }
 
     private fun isValidChatContent(content: String): Boolean {
         if (content.isBlank()) {
-            android.util.Log.d("WhatsAppProcessor", "Content is blank")
             return false
         }
-
-        android.util.Log.d("WhatsAppProcessor", "Validating chat content. First 200 chars: ${content.take(200)}")
 
         // More flexible validation - check if content looks like any chat format
         val lines = content.split("\n")
         var validMessageCount = 0
         val sampleLines = lines.take(100) // Check more lines to be thorough
 
-        android.util.Log.d("WhatsAppProcessor", "Total lines: ${lines.size}, checking first ${sampleLines.size}")
-
-        for ((index, line) in sampleLines.withIndex()) {
+        for ((_, line) in sampleLines.withIndex()) {
             val trimmedLine = line.trim()
             if (trimmedLine.isEmpty()) continue
 
-            if (index < 5) { // Log first few lines for debugging
-                android.util.Log.d("WhatsAppProcessor", "Line $index: $trimmedLine")
-            }
 
             // Very flexible pattern matching for any chat-like format
             val hasTimePattern = hasTimeFormat(trimmedLine)
@@ -397,19 +324,14 @@ class WhatsAppProcessor {
 
             if (hasTimePattern || hasUserPattern) {
                 validMessageCount++
-                if (index < 5) {
-                    android.util.Log.d("WhatsAppProcessor", "Found valid message pattern in line $index")
-                }
             }
 
             // Early return if we find enough valid patterns
             if (validMessageCount >= 3) {
-                android.util.Log.d("WhatsAppProcessor", "Found sufficient valid messages: $validMessageCount")
                 return true
             }
         }
 
-        android.util.Log.d("WhatsAppProcessor", "Total valid messages found: $validMessageCount")
 
         // If it's a text file with some chat-like patterns, accept it
         return validMessageCount >= 1 || (lines.size > 10 && content.contains(":"))
@@ -460,8 +382,6 @@ class WhatsAppProcessor {
         val trimmedLine = line.trim()
         if (trimmedLine.isEmpty()) return null
 
-        android.util.Log.d("WhatsAppProcessor", "Parsing line: ${trimmedLine.take(100)}")
-
         // Approach 1: Handle the user's specific format: [2025-09-16, 5:31:01 PM] ~Justin: Hi
         val userFormatPattern = "\\[(\\d{4}-\\d{2}-\\d{2}, \\d{1,2}:\\d{2}:\\d{2} [AP]M)]\\s*([^:]+):\\s*(.*)".toRegex()
         val userMatch = userFormatPattern.find(trimmedLine)
@@ -469,8 +389,6 @@ class WhatsAppProcessor {
             val timestamp = userMatch.groupValues[1]
             val sender = userMatch.groupValues[2].trim()
             val content = userMatch.groupValues[3].trim()
-
-            android.util.Log.d("WhatsAppProcessor", "User format - Timestamp: $timestamp, Sender: $sender, Content: $content")
 
             if (sender.isNotEmpty() && content.isNotEmpty()) {
                 return ChatMessage(
@@ -488,8 +406,6 @@ class WhatsAppProcessor {
             val timestamp = bracketMatch.groupValues[1]
             val sender = bracketMatch.groupValues[2].trim()
             val content = bracketMatch.groupValues[3].trim()
-
-            android.util.Log.d("WhatsAppProcessor", "Bracket format - Timestamp: $timestamp, Sender: $sender, Content: $content")
 
             if (sender.isNotEmpty() && content.isNotEmpty()) {
                 return ChatMessage(
@@ -509,8 +425,6 @@ class WhatsAppProcessor {
             // Basic validation - sender should not be too long and should contain word characters
             if (sender.length <= 50 && sender.matches(".*[A-Za-z0-9]+.*".toRegex()) &&
                 content.isNotEmpty()) {
-
-                android.util.Log.d("WhatsAppProcessor", "Simple parse - Sender: $sender, Content: ${content.take(50)}")
 
                 return ChatMessage(
                     timestamp = System.currentTimeMillis(),
@@ -572,7 +486,6 @@ class WhatsAppProcessor {
             try {
                 val date = format.parse(dateStr)
                 if (date != null) {
-                    android.util.Log.d("WhatsAppProcessor", "Successfully parsed date: $dateStr with format: ${format.toPattern()}")
                     return date.time
                 }
             } catch (_: Exception) {
@@ -580,7 +493,6 @@ class WhatsAppProcessor {
             }
         }
 
-        android.util.Log.w("WhatsAppProcessor", "Could not parse date: $dateStr")
         return null
     }
 
