@@ -1,6 +1,7 @@
 package com.example.recapme.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -18,6 +19,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.recapme.ui.screens.GuideScreen
 import com.example.recapme.ui.screens.HomeScreen
 import com.example.recapme.ui.screens.SettingsScreen
 import com.example.recapme.ui.theme.DarkGreen
@@ -25,6 +27,7 @@ import com.example.recapme.ui.theme.White
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
+    object Guide : Screen("guide", "Guide", Icons.AutoMirrored.Filled.MenuBook)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
 }
 
@@ -41,6 +44,9 @@ fun RecapMeNavHost(
         composable(Screen.Home.route) {
             HomeScreen()
         }
+        composable(Screen.Guide.route) {
+            GuideScreen()
+        }
         composable(Screen.Settings.route) {
             SettingsScreen()
         }
@@ -49,7 +55,7 @@ fun RecapMeNavHost(
 
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
-    val items = listOf(Screen.Home, Screen.Settings)
+    val items = listOf(Screen.Guide, Screen.Home, Screen.Settings)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
