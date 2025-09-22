@@ -31,9 +31,9 @@ class RecapService(
                             // Step 3: Convert API response to Recap model
                             val recap = Recap(
                                 id = UUID.randomUUID().toString(),
-                                title = recapResponse.title,
-                                participants = recapResponse.users,
-                                content = recapResponse.recap,
+                                title = recapResponse.Title,
+                                participants = recapResponse.Users,
+                                content = recapResponse.Recap,
                                 category = null,
                                 timestamp = System.currentTimeMillis(),
                                 isStarred = false
