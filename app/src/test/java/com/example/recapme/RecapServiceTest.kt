@@ -50,7 +50,7 @@ class RecapServiceTest {
         )
         val expectedApiResponse = RecapResponse(
             title = "Test Conversation",
-            users = listOf("John", "Mary"),
+            participants = listOf("John", "Mary"),
             recap = "John and Mary exchanged greetings."
         )
 
@@ -67,8 +67,8 @@ class RecapServiceTest {
         assertTrue(result.isSuccess)
         val recap = result.getOrNull()!!
         assertEquals(expectedApiResponse.title, recap.title)
-        assertEquals(expectedApiResponse.users, recap.participants)
-        assertEquals(expectedApiResponse.recap, recap.content)
+        assertEquals(expectedApiResponse.participants, recap.participants)
+        assertEquals(expectedApiResponse.recap, recap.recap)
     }
 
     @Test

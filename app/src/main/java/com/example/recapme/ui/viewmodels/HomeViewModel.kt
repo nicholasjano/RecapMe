@@ -78,7 +78,7 @@ class HomeViewModel(
         recaps.filter { recap ->
             val matchesSearch = query.isEmpty() ||
                 recap.title.contains(query, ignoreCase = true) ||
-                recap.content.contains(query, ignoreCase = true) ||
+                recap.recap.contains(query, ignoreCase = true) ||
                 recap.participants.any { it.contains(query, ignoreCase = true) }
 
             val matchesCategory = if (categoryId == Category.ALL_CATEGORY_ID) {

@@ -457,7 +457,7 @@ fun HomeScreen(
                                             )
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
-                                                text = recap.content.take(100) + if (recap.content.length > 100) "..." else "",
+                                                text = recap.recap.take(100) + if (recap.recap.length > 100) "..." else "",
                                                 fontSize = 14.sp,
                                                 color = MediumGray
                                             )
@@ -664,7 +664,7 @@ fun HomeScreen(
                                 .verticalScroll(rememberScrollState())
                         ) {
                             Text(
-                                text = recap.content,
+                                text = recap.recap,
                                 fontSize = 16.sp,
                                 color = DarkGray,
                                 lineHeight = 24.sp

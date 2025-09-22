@@ -4,7 +4,7 @@ data class Recap(
     val id: String,
     val title: String,
     val participants: List<String>,
-    val content: String,
+    val recap: String,
     val category: String? = null,
     val timestamp: Long,
     val isStarred: Boolean

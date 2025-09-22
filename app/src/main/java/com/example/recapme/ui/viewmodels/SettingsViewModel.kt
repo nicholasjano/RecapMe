@@ -119,7 +119,7 @@ class SettingsViewModel(context: Context) : ViewModel() {
                             }
                             appendLine()
                             appendLine("Content:")
-                            appendLine(recap.content)
+                            appendLine(recap.recap)
                         }
 
                         zipOut.write(content.toByteArray())
