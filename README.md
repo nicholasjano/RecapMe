@@ -44,7 +44,7 @@ RecapMe follows modern Android development best practices with a clean MVVM arch
 
 ### Project Structure
 ```
-app/src/main/java/com/example/recapme/
+app/src/main/java/com/nicholasjano/recapme/
 ├── data/
 │   ├── api/              # API service and models
 │   ├── models/           # Data classes (Recap, Settings, ChatMessage)

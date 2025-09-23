@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.recapme"
+    namespace = "com.nicholasjano.recapme"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.recapme"
+        applicationId = "com.nicholasjano.recapme"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
