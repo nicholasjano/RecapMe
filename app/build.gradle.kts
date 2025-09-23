@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.net.URI
 
 plugins {
     alias(libs.plugins.android.application)
@@ -26,11 +27,20 @@ android {
         // Add API URL to BuildConfig
         val apiUrl = project.findProperty("RECAP_API_URL")?.toString() ?: ""
         buildConfigField("String", "RECAP_API_URL", "\"$apiUrl\"")
+
+        // Extract domain from API URL for network security config
+        val apiDomain = try {
+            URI(apiUrl).host ?: "localhost"
+        } catch (_: Exception) {
+            "localhost"
+        }
+        manifestPlaceholders["API_DOMAIN"] = apiDomain
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
