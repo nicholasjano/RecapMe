@@ -21,3 +21,4 @@ keystore.properties
 *.aab
 *.apk
 app/build/
+.idea/**
