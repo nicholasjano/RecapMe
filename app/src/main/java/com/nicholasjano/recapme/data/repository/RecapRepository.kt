@@ -17,7 +17,7 @@ class RecapRepository {
 
     init {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.NONE
             // Never log sensitive headers
             redactHeader("X-API-Key")
             redactHeader("Authorization")
